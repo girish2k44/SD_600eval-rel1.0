@@ -1,0 +1,27 @@
+From e818a8fb45d59929f21775d2b36dafcc48dd4d0a Mon Sep 17 00:00:00 2001
+From: Parth Pancholi <parth.pancholi@einfochips.com>
+Date: Thu, 3 Dec 2015 11:16:20 +0530
+Subject: [PATCH 13/40] Addded Ethernet Driver Support for DB600C
+
+Enabling ethernet driver in msm8960_defconfig
+
+Signed-off-by: eInfochips Team <ei-qc8064@einfochips.com>
+---
+ arch/arm/configs/msm8960_defconfig | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/arch/arm/configs/msm8960_defconfig b/arch/arm/configs/msm8960_defconfig
+index fa89ab0..1eb222f 100644
+--- a/arch/arm/configs/msm8960_defconfig
++++ b/arch/arm/configs/msm8960_defconfig
+@@ -576,6 +576,7 @@ CONFIG_BT_HCISMD=y
+ CONFIG_BT_HCIUART=y
+ CONFIG_BT_HCIUART_ATH3K=y
+ CONFIG_MSM_BT_POWER=y
++CONFIG_ATL1C=y
+ CONFIG_CFG80211=y
+ CONFIG_CFG80211_INTERNAL_REGDB=y
+ # CONFIG_CFG80211_WEXT is not set
+-- 
+1.9.1
+

@@ -1,0 +1,39 @@
+From afe6be989e208e68df6573368a2722b1e99284da Mon Sep 17 00:00:00 2001
+From: Girish Sharma <girish.sharma@einfochips.com>
+Date: Fri, 27 Nov 2015 15:57:03 +0530
+Subject: [PATCH 1/2] wlan: Resolve link creation issue.
+
+Android build checks for proprietary source and create link if source is
+present.
+Proprietary source code dependency is removed to create wlan
+firmware download link.
+
+Change-Id: I98faf3a79927c4b0886d9cb86093a2e4d496f0d4
+Signed-off-by: eInfochips Team <ei-qc8064@einfochips.com>
+---
+ Android.mk | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/Android.mk b/Android.mk
+index 5b4030f..cc68bd8 100644
+--- a/Android.mk
++++ b/Android.mk
+@@ -99,13 +99,13 @@ $(shell mkdir -p $(TARGET_OUT)/lib/modules; \
+         ln -sf /system/lib/modules/$(WLAN_CHIPSET)/$(WLAN_CHIPSET)_wlan.ko \
+                $(TARGET_OUT)/lib/modules/wlan.ko)
+ 
+-ifeq ($(WLAN_PROPRIETARY),1)
++#ifeq ($(WLAN_PROPRIETARY),1)
+ $(shell mkdir -p $(TARGET_OUT_ETC)/firmware/wlan/prima; \
+         ln -sf /persist/WCNSS_qcom_wlan_nv.bin \
+         $(TARGET_OUT_ETC)/firmware/wlan/prima/WCNSS_qcom_wlan_nv.bin; \
+         ln -sf /data/misc/wifi/WCNSS_qcom_cfg.ini \
+         $(TARGET_OUT_ETC)/firmware/wlan/prima/WCNSS_qcom_cfg.ini)
+-endif
++#endif
+ 
+ endif # DLKM check
+ 
+-- 
+1.9.1
+

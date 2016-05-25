@@ -1,0 +1,113 @@
+From 16dbe11cfabe13118948f62c2b26185682d0b923 Mon Sep 17 00:00:00 2001
+From: Parth Pancholi <parth.pancholi@einfochips.com>
+Date: Thu, 3 Dec 2015 11:04:16 +0530
+Subject: [PATCH 12/40] Added Support of SATA drive for DB600C
+
+Added support of SATA in DB600C by enabling driver.
+PMIC GPIO related changes added.
+
+Signed-off-by: eInfochips Team <ei-qc8064@einfochips.com>
+---
+ arch/arm/configs/msm8960_defconfig  |  3 ++-
+ arch/arm/mach-msm/board-8064-pmic.c |  2 +-
+ arch/arm/mach-msm/board-8064.c      | 15 ++++++++++++++-
+ drivers/ata/libata-core.c           |  2 +-
+ 4 files changed, 18 insertions(+), 4 deletions(-)
+
+diff --git a/arch/arm/configs/msm8960_defconfig b/arch/arm/configs/msm8960_defconfig
+index 66f46a1..fa89ab0 100644
+--- a/arch/arm/configs/msm8960_defconfig
++++ b/arch/arm/configs/msm8960_defconfig
+@@ -282,7 +282,6 @@ CONFIG_HAPTIC_ISA1200=y
+ CONFIG_PMIC8XXX_VIBRATOR=y
+ CONFIG_QSEECOM=y
+ CONFIG_USB_HSIC_SMSC_HUB=y
+-CONFIG_SCSI=y
+ CONFIG_SCSI_TGT=y
+ CONFIG_BLK_DEV_SD=y
+ CONFIG_CHR_DEV_SG=y
+@@ -291,6 +290,8 @@ CONFIG_SCSI_MULTI_LUN=y
+ CONFIG_SCSI_CONSTANTS=y
+ CONFIG_SCSI_LOGGING=y
+ CONFIG_SCSI_SCAN_ASYNC=y
++CONFIG_ATA=y
++CONFIG_SATA_AHCI_MSM=y
+ CONFIG_MD=y
+ CONFIG_BLK_DEV_DM=y
+ CONFIG_DM_CRYPT=y
+diff --git a/arch/arm/mach-msm/board-8064-pmic.c b/arch/arm/mach-msm/board-8064-pmic.c
+index a5291c5..a8fc003 100644
+--- a/arch/arm/mach-msm/board-8064-pmic.c
++++ b/arch/arm/mach-msm/board-8064-pmic.c
+@@ -127,7 +127,7 @@ static struct pm8xxx_gpio_init pm8921_gpios[] __initdata = {
+ 	/* TABLA CODEC RESET */
+ 	PM8921_GPIO_OUTPUT(34, 0, MED),
+ 	PM8921_GPIO_OUTPUT(13, 0, HIGH),               /* PCIE_CLK_PWR_EN */
+-	PM8921_GPIO_INPUT(12, PM_GPIO_PULL_UP_30),     /* PCIE_WAKE_N */
++	PM8921_GPIO_INPUT(6, PM_GPIO_PULL_UP_30),     /* PCIE_WAKE_N */
+ };
+ 
+ static struct pm8xxx_gpio_init pm8921_mtp_kp_gpios[] __initdata = {
+diff --git a/arch/arm/mach-msm/board-8064.c b/arch/arm/mach-msm/board-8064.c
+index 0ce9ce8..6ba4267 100644
+--- a/arch/arm/mach-msm/board-8064.c
++++ b/arch/arm/mach-msm/board-8064.c
+@@ -140,6 +140,10 @@
+ #define PCIE_PWR_EN_PMIC_GPIO 13
+ #define PCIE_RST_N_PMIC_MPP 1
+ 
++/* PCIe pmic gpios for eInfochips DRAGONBOARD 600C */
++#define PCIE_WAKE_N_PMIC_GPIO_DRAGON 6
++#define PCIE_RST_N_CPU_GPIO_DRAGON   27
++
+ #ifdef CONFIG_KERNEL_MSM_CONTIG_MEM_REGION
+ static unsigned msm_contig_mem_size = MSM_CONTIG_MEM_SIZE;
+ static int __init msm_contig_mem_size_setup(char *p)
+@@ -2306,7 +2310,8 @@ static void __init apq8064_init_buses(void)
+ /* PCIe gpios */
+ static struct msm_pcie_gpio_info_t msm_pcie_gpio_info[MSM_PCIE_MAX_GPIO] = {
+ 	{"rst_n", PM8921_MPP_PM_TO_SYS(PCIE_RST_N_PMIC_MPP), 0},
+-	{"pwr_en", PM8921_GPIO_PM_TO_SYS(PCIE_PWR_EN_PMIC_GPIO), 1},
++	/* eInfochips : Not used in DB600 */
++	//{"pwr_en", PM8921_GPIO_PM_TO_SYS(PCIE_PWR_EN_PMIC_GPIO), 1},
+ };
+ 
+ static struct msm_pcie_platform msm_pcie_platform_data = {
+@@ -2325,6 +2330,13 @@ static int __init mpq8064_pcie_enabled(void)
+ static void __init mpq8064_pcie_init(void)
+ {
+ 	if (mpq8064_pcie_enabled()) {
++		if (machine_is_apq8064_db600c() || machine_is_apq8064_cdp()) {
++			msm_pcie_gpio_info[0].num = PCIE_RST_N_CPU_GPIO_DRAGON;
++			/* eInfochips : Not used in DB600 */
++			//msm_pcie_gpio_info[1].num = PM8921_MPP_PM_TO_SYS(PCIE_PWR_EN_PMIC_MPP_DRAGON);
++			msm_pcie_platform_data.wake_n = PM8921_GPIO_IRQ(PM8921_IRQ_BASE,PCIE_WAKE_N_PMIC_GPIO_DRAGON);
++
++		}
+ 		msm_device_pcie.dev.platform_data = &msm_pcie_platform_data;
+ 		platform_device_register(&msm_device_pcie);
+ 	}
+@@ -3412,6 +3424,7 @@ static void __init apq8064_cdp_init(void)
+ 		platform_add_devices(cdp_devices, ARRAY_SIZE(cdp_devices));
+ 		spi_register_board_info(spi_board_info,
+ 						ARRAY_SIZE(spi_board_info));
++		mpq8064_pcie_init();
+ 	}
+ 	apq8064_init_fb();
+ 	apq8064_init_gpu();
+diff --git a/drivers/ata/libata-core.c b/drivers/ata/libata-core.c
+index 23763a1..d4fc477 100644
+--- a/drivers/ata/libata-core.c
++++ b/drivers/ata/libata-core.c
+@@ -1321,7 +1321,7 @@ static int ata_hpa_resize(struct ata_device *dev)
+ 	int print_info = ehc->i.flags & ATA_EHI_PRINTINFO;
+ 	bool unlock_hpa = ata_ignore_hpa || dev->flags & ATA_DFLAG_UNLOCK_HPA;
+ 	u64 sectors = ata_id_n_sectors(dev->id);
+-	u64 native_sectors;
++	u64 native_sectors = 0;
+ 	int rc;
+ 
+ 	/* do we need to do it? */
+-- 
+1.9.1
+

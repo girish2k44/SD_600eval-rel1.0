@@ -1,0 +1,51 @@
+From 573d6e5ed59a4c171d7ae8f0d4dd03bd7dd692ae Mon Sep 17 00:00:00 2001
+From: Girish Sharma <girish.sharma@einfochips.com>
+Date: Wed, 16 Dec 2015 13:57:32 +0530
+Subject: [PATCH 25/40] Power: Deep sleep mode disabled
+
+Deep sleep mode is disabled as it creates issue during wakeup of Android
+OS from suspend state to active state.
+
+Change-Id: Id705f746b742e2da48ac1c8773f99c8201eb4d3d
+Signed-off-by: eInfochips Team <ei-qc8064@einfochips.com>
+---
+ kernel/power/main.c | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/kernel/power/main.c b/kernel/power/main.c
+index 596bf9f..fdc19df 100644
+--- a/kernel/power/main.c
++++ b/kernel/power/main.c
+@@ -359,11 +359,11 @@ static ssize_t state_store(struct kobject *kobj, struct kobj_attribute *attr,
+ {
+ #ifdef CONFIG_SUSPEND
+ #ifdef CONFIG_EARLYSUSPEND
+-	suspend_state_t state = PM_SUSPEND_ON;
++/*	suspend_state_t state = PM_SUSPEND_ON;*/
+ #else
+ 	suspend_state_t state = PM_SUSPEND_STANDBY;
+ #endif
+-	const char * const *s;
++/*	const char * const *s;*/
+ #endif
+ 	char *p;
+ 	int len;
+@@ -372,6 +372,7 @@ static ssize_t state_store(struct kobject *kobj, struct kobj_attribute *attr,
+ 	p = memchr(buf, '\n', n);
+ 	len = p ? p - buf : n;
+ 
++#if 0
+ 	/* First, check if we are requested to hibernate */
+ 	if (len == 4 && !strncmp(buf, "disk", len)) {
+ 		error = hibernate();
+@@ -395,6 +396,7 @@ static ssize_t state_store(struct kobject *kobj, struct kobj_attribute *attr,
+ #endif
+ 
+  Exit:
++#endif
+ 	return error ? error : n;
+ }
+ 
+-- 
+1.9.1
+

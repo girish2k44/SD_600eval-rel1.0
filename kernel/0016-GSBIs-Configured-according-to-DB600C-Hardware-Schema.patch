@@ -1,0 +1,336 @@
+From b3be5e6dc76d9a236511a7d359018c76b12ffa7e Mon Sep 17 00:00:00 2001
+From: Parth Pancholi <parth.pancholi@einfochips.com>
+Date: Wed, 9 Dec 2015 15:18:26 +0530
+Subject: [PATCH 16/40] GSBIs Configured according to DB600C Hardware Schematic
+
+GSBI1 = UART, GSBI2 = I2C2 (Sensor), GSBI3 = I2C3,
+GSBI4 = I2C4 (Camera 1), GSBI5 = SPI,
+GSBI7 = DEBUG UART & I2C (Camera 2) Configured
+
+Signed-off-by: eInfochips Team <ei-qc8064@einfochips.com>
+---
+ arch/arm/mach-msm/board-8064-gpiomux.c | 87 ++++++++++++++++++++++++++++------
+ arch/arm/mach-msm/board-8064.c         | 30 +++++++++++-
+ arch/arm/mach-msm/clock-8960.c         | 13 +++--
+ arch/arm/mach-msm/devices-8064.c       |  5 +-
+ 4 files changed, 113 insertions(+), 22 deletions(-)
+
+diff --git a/arch/arm/mach-msm/board-8064-gpiomux.c b/arch/arm/mach-msm/board-8064-gpiomux.c
+index b1f2441..07a86a4 100644
+--- a/arch/arm/mach-msm/board-8064-gpiomux.c
++++ b/arch/arm/mach-msm/board-8064-gpiomux.c
+@@ -373,11 +373,13 @@ static struct gpiomux_setting slimbus = {
+ 	.pull = GPIOMUX_PULL_KEEPER,
+ };
+ 
++#ifndef CONFIG_MACH_APQ8064_DB600C
+ static struct gpiomux_setting gsbi1_uart_config = {
+ 	.func = GPIOMUX_FUNC_1,
+ 	.drv = GPIOMUX_DRV_16MA,
+ 	.pull = GPIOMUX_PULL_NONE,
+ };
++#endif
+ 
+ static struct gpiomux_setting ext_regulator_config = {
+ 	.func = GPIOMUX_FUNC_GPIO,
+@@ -632,18 +634,20 @@ static struct msm_gpiomux_config apq8064_gsbi_configs[] __initdata = {
+ 			[GPIOMUX_ACTIVE] = &gsbi3_active_cfg,
+ 		},
+ 	},
++#ifndef CONFIG_MACH_APQ8064_DB600C
+ 	{
+-		.gpio      = 18,		/* GSBI1 UART TX */
++		.gpio      = 18,                /* GSBI1 UART TX */
+ 		.settings = {
+ 			[GPIOMUX_SUSPENDED] = &gsbi1_uart_config,
+ 		},
+ 	},
+ 	{
+-		.gpio      = 19,		/* GSBI1 UART RX */
++		.gpio      = 19,                /* GSBI1 UART RX */
+ 		.settings = {
+ 			[GPIOMUX_SUSPENDED] = &gsbi1_uart_config,
+ 		},
+ 	},
++#endif
+ #if defined(CONFIG_KS8851) || defined(CONFIG_KS8851_MODULE)
+ 	{
+ 		.gpio      = 51,		/* GSBI5 QUP SPI_DATA_MOSI */
+@@ -1383,6 +1387,53 @@ static struct msm_gpiomux_config sglte2_qsc_configs[] __initdata = {
+ 	},
+ };
+ 
++#ifdef CONFIG_MACH_APQ8064_DB600C
++
++static struct gpiomux_setting gsbi1_uartdm_active = {
++    .func = GPIOMUX_FUNC_1,
++    .drv = GPIOMUX_DRV_8MA,
++    .pull = GPIOMUX_PULL_NONE,
++};
++
++static struct gpiomux_setting gsbi1_uartdm_suspended = {
++    .func = GPIOMUX_FUNC_GPIO,
++    .drv = GPIOMUX_DRV_2MA,
++    .pull = GPIOMUX_PULL_DOWN,
++};
++
++static struct msm_gpiomux_config apq8064_uartdm_gsbi1_configs[] __initdata = {
++    {
++        .gpio      = 19,        /* GSBI1 UARTDM RX */
++        .settings = {
++            [GPIOMUX_ACTIVE] = &gsbi1_uartdm_active,
++            [GPIOMUX_SUSPENDED] = &gsbi1_uartdm_suspended,
++        },
++    },
++    {
++        .gpio      = 18,       /* GSBI1 UARTDM TX */
++        .settings = {
++            [GPIOMUX_ACTIVE] = &gsbi1_uartdm_active,
++            [GPIOMUX_SUSPENDED] = &gsbi1_uartdm_suspended,
++        },
++    },
++    {
++        .gpio      = 21,        /* GSBI1 UARTDM RFR */
++        .settings = {
++            [GPIOMUX_ACTIVE] = &gsbi1_uartdm_active,
++            [GPIOMUX_SUSPENDED] = &gsbi1_uartdm_suspended,
++        },
++    },
++    {
++        .gpio      = 20,        /* GSBI1 UARTDM CTS */
++        .settings = {
++            [GPIOMUX_ACTIVE] = &gsbi1_uartdm_active,
++            [GPIOMUX_SUSPENDED] = &gsbi1_uartdm_suspended,
++        },
++    },
++};
++
++#else
++
+ static struct gpiomux_setting gsbi4_uartdm_active = {
+ 	.func = GPIOMUX_FUNC_1,
+ 	.drv = GPIOMUX_DRV_8MA,
+@@ -1395,18 +1446,6 @@ static struct gpiomux_setting gsbi4_uartdm_suspended = {
+ 	.pull = GPIOMUX_PULL_DOWN,
+ };
+ 
+-static struct gpiomux_setting gsbi6_uartdm_active = {
+-	.func = GPIOMUX_FUNC_2,
+-	.drv = GPIOMUX_DRV_8MA,
+-	.pull = GPIOMUX_PULL_NONE,
+-};
+-
+-static struct gpiomux_setting gsbi6_uartdm_suspended = {
+-	.func = GPIOMUX_FUNC_GPIO,
+-	.drv = GPIOMUX_DRV_2MA,
+-	.pull = GPIOMUX_PULL_DOWN,
+-};
+-
+ static struct msm_gpiomux_config apq8064_uartdm_gsbi4_configs[] __initdata = {
+ 	{
+ 		.gpio      = 11,        /* GSBI4 UARTDM RX */
+@@ -1437,6 +1476,19 @@ static struct msm_gpiomux_config apq8064_uartdm_gsbi4_configs[] __initdata = {
+ 		},
+ 	},
+ };
++#endif
++
++static struct gpiomux_setting gsbi6_uartdm_active = {
++    .func = GPIOMUX_FUNC_2,
++    .drv = GPIOMUX_DRV_8MA,
++    .pull = GPIOMUX_PULL_NONE,
++};
++
++static struct gpiomux_setting gsbi6_uartdm_suspended = {
++    .func = GPIOMUX_FUNC_GPIO,
++    .drv = GPIOMUX_DRV_2MA,
++    .pull = GPIOMUX_PULL_DOWN,
++};
+ 
+ static struct msm_gpiomux_config mpq8064_uartdm_configs[] __initdata = {
+ 	{ /* UARTDM_TX */
+@@ -1539,7 +1591,6 @@ static struct msm_gpiomux_config apq8064_i2c7_configs[] __initdata = {
+ 		},
+ 	},
+ };
+-
+ #endif
+ 
+ void __init apq8064_init_gpiomux(void)
+@@ -1613,9 +1664,15 @@ void __init apq8064_init_gpiomux(void)
+ 			msm_gpiomux_install(sglte2_qsc_configs,
+ 					ARRAY_SIZE(sglte2_qsc_configs));
+ 
++#ifdef CONFIG_MACH_APQ8064_DB600C
++			/* GSBI1 UART GPIOs for Primary IPC */
++            msm_gpiomux_install(apq8064_uartdm_gsbi1_configs,
++                ARRAY_SIZE(apq8064_uartdm_gsbi1_configs));
++#else
+ 			/* GSBI4 UART GPIOs for Primary IPC */
+ 			msm_gpiomux_install(apq8064_uartdm_gsbi4_configs,
+ 				ARRAY_SIZE(apq8064_uartdm_gsbi4_configs));
++#endif
+ 		} else if (SOCINFO_VERSION_MINOR(platform_version) == 1) {
+ 			msm_gpiomux_install(mdm_i2s_configs,
+ 					ARRAY_SIZE(mdm_i2s_configs));
+diff --git a/arch/arm/mach-msm/board-8064.c b/arch/arm/mach-msm/board-8064.c
+index f992bd3..89254c0 100644
+--- a/arch/arm/mach-msm/board-8064.c
++++ b/arch/arm/mach-msm/board-8064.c
+@@ -2434,8 +2434,14 @@ static struct platform_device gpio_ir_recv_pdev = {
+ };
+ 
+ static struct platform_device *common_not_mpq_devices[] __initdata = {
++#ifndef CONFIG_MACH_APQ8064_DB600C
+ 	&apq8064_device_qup_i2c_gsbi1,
+ 	&apq8064_device_qup_i2c_gsbi3,
++#else
++	&apq8064_device_qup_i2c_gsbi3,
++	&apq8064_device_qup_i2c_gsbi2,
++	&apq8064_device_qup_i2c_gsbi7,
++#endif
+ };
+ 
+ static struct platform_device *early_common_devices[] __initdata = {
+@@ -2744,10 +2750,12 @@ static struct slim_boardinfo apq8064_slim_devices[] = {
+ 	/* add more slimbus slaves as needed */
+ };
+ 
++#ifndef CONFIG_MACH_APQ8064_DB600C
+ static struct msm_i2c_platform_data apq8064_i2c_qup_gsbi1_pdata = {
+ 	.clk_freq = 100000,
+ 	.src_clk_rate = 24000000,
+ };
++#endif
+ 
+ static struct msm_i2c_platform_data apq8064_i2c_qup_gsbi3_pdata = {
+ 	.clk_freq = 384000,
+@@ -2772,6 +2780,7 @@ static struct msm_i2c_platform_data apq8064_i2c_qup_gsbi2_pdata = {
+ 
+ static struct msm_i2c_platform_data apq8064_i2c_qup_gsbi7_pdata = {
+ 	.clk_freq = 100000,
++	//.clk_freq = 384000,
+ 	.src_clk_rate = 24000000,
+ };
+ #endif
+@@ -2779,18 +2788,35 @@ static struct msm_i2c_platform_data apq8064_i2c_qup_gsbi7_pdata = {
+ 
+ #define GSBI_DUAL_MODE_CODE 0x60
+ #define MSM_GSBI1_PHYS		0x12440000
++#define MSM_GSBI7_PHYS		0x16600000
+ static void __init apq8064_i2c_init(void)
+ {
+ 	void __iomem *gsbi_mem;
+ 
++#ifndef CONFIG_MACH_APQ8064_DB600C
+ 	apq8064_device_qup_i2c_gsbi1.dev.platform_data =
+ 					&apq8064_i2c_qup_gsbi1_pdata;
++#else
++	apq8064_device_qup_i2c_gsbi7.dev.platform_data =
++                    &apq8064_i2c_qup_gsbi7_pdata;
++#endif
++
++#ifndef CONFIG_MACH_APQ8064_DB600C
+ 	gsbi_mem = ioremap_nocache(MSM_GSBI1_PHYS, 4);
+ 	writel_relaxed(GSBI_DUAL_MODE_CODE, gsbi_mem);
+ 	/* Ensure protocol code is written before proceeding */
+ 	wmb();
+ 	iounmap(gsbi_mem);
+ 	apq8064_i2c_qup_gsbi1_pdata.use_gsbi_shared_mode = 1;
++#else
++	gsbi_mem = ioremap_nocache(MSM_GSBI7_PHYS, 4);
++    writel_relaxed(GSBI_DUAL_MODE_CODE, gsbi_mem);
++    /* Ensure protocol code is written before proceeding */
++    wmb();
++    iounmap(gsbi_mem);
++	apq8064_i2c_qup_gsbi7_pdata.use_gsbi_shared_mode = 1;
++#endif
++
+ 	apq8064_device_qup_i2c_gsbi3.dev.platform_data =
+ 					&apq8064_i2c_qup_gsbi3_pdata;
+ 
+@@ -2799,11 +2825,11 @@ static void __init apq8064_i2c_init(void)
+ 					&apq8064_i2c_qup_gsbi2_pdata;
+ 	apq8064_device_qup_i2c_gsbi7.dev.platform_data =
+ 					&apq8064_i2c_qup_gsbi7_pdata;
+-#endif
++#else
+ 
+ 	apq8064_device_qup_i2c_gsbi1.dev.platform_data =
+ 					&apq8064_i2c_qup_gsbi1_pdata;
+-
++#endif
+ 	/* Add GSBI4 I2C pdata for non-fusion3 SGLTE2 */
+ 	if (socinfo_get_platform_subtype() !=
+ 				PLATFORM_SUBTYPE_SGLTE2) {
+diff --git a/arch/arm/mach-msm/clock-8960.c b/arch/arm/mach-msm/clock-8960.c
+index 8160b3e..8bfe2db 100755
+--- a/arch/arm/mach-msm/clock-8960.c
++++ b/arch/arm/mach-msm/clock-8960.c
+@@ -5320,14 +5320,20 @@ static struct clk_lookup msm_clocks_8064[] = {
+ #else
+ 	CLK_LOOKUP("core_clk",		gsbi7_uart_clk.c, "msm_serial_hsl.0"),
+ #endif
++#ifndef CONFIG_MACH_APQ8064_DB600C
+ 	CLK_LOOKUP("core_clk",		gsbi1_qup_clk.c,	"qup_i2c.0"),
+-	CLK_LOOKUP("core_clk",		gsbi2_qup_clk.c,	""),
++#endif
+ 	CLK_LOOKUP("core_clk",		gsbi3_qup_clk.c,	"qup_i2c.3"),
+ 	CLK_LOOKUP("core_clk",		gsbi4_qup_clk.c,	"qup_i2c.4"),
+ 	CLK_LOOKUP("core_clk",		gsbi5_qup_clk.c,	"spi_qsd.0"),
+ 	CLK_LOOKUP("core_clk",		gsbi5_qup_clk.c,	"qup_i2c.5"),
+ 	CLK_LOOKUP("core_clk",		gsbi6_qup_clk.c,	""),
+-	CLK_LOOKUP("core_clk",		gsbi7_qup_clk.c,	""),
++#ifdef CONFIG_MACH_APQ8064_DB600C
++	CLK_LOOKUP("core_clk",          gsbi7_qup_clk.c,        "qup_i2c.7"),
++	CLK_LOOKUP("iface_clk",         gsbi7_p_clk.c,          "qup_i2c.7"),
++	CLK_LOOKUP("core_clk",          gsbi2_qup_clk.c,        "qup_i2c.2"),
++	CLK_LOOKUP("iface_clk",         gsbi2_p_clk.c,          "qup_i2c.2"),
++#endif
+ 	CLK_LOOKUP("core_clk",		pdm_clk.c,		""),
+ 	CLK_LOOKUP("mem_clk",		pmem_clk.c,		"msm_sps"),
+ 	CLK_LOOKUP("core_clk",          prng_clk.c,		"msm_rng.0"),
+@@ -5366,8 +5372,9 @@ static struct clk_lookup msm_clocks_8064[] = {
+ #else
+ 	CLK_LOOKUP("iface_clk",		gsbi1_p_clk.c,	"msm_serial_hsl.1"),
+ #endif
++#ifndef CONFIG_MACH_APQ8064_DB600C
+ 	CLK_LOOKUP("iface_clk",		gsbi1_p_clk.c,	"qup_i2c.0"),
+-	CLK_LOOKUP("iface_clk",		gsbi2_p_clk.c,		""),
++#endif
+ 	CLK_LOOKUP("iface_clk",		gsbi3_p_clk.c,		"qup_i2c.3"),
+ #ifdef CONFIG_MACH_LGE
+ 	CLK_LOOKUP("iface_clk",		gsbi4_p_clk.c,		"msm_serial_hsl.0"),
+diff --git a/arch/arm/mach-msm/devices-8064.c b/arch/arm/mach-msm/devices-8064.c
+index a3eef74..f49ec89 100644
+--- a/arch/arm/mach-msm/devices-8064.c
++++ b/arch/arm/mach-msm/devices-8064.c
+@@ -52,7 +52,7 @@
+ 
+ /* Address of GSBI blocks */
+ #define MSM_GSBI1_PHYS		0x12440000
+-#define MSM_GSBI2_PHYS		0x13440000
++#define MSM_GSBI2_PHYS		0x12480000
+ #define MSM_GSBI3_PHYS		0x16200000
+ #define MSM_GSBI4_PHYS		0x16300000
+ #define MSM_GSBI5_PHYS		0x1A200000
+@@ -311,7 +311,7 @@ static struct resource resources_qup_i2c_gsbi2[] = {
+ };
+ #endif
+ 
+-
++#ifndef CONFIG_MACH_APQ8064_DB600C
+ static struct resource resources_qup_i2c_gsbi1[] = {
+ 	{
+ 		.name	= "gsbi_qup_i2c_addr",
+@@ -351,6 +351,7 @@ struct platform_device apq8064_device_qup_i2c_gsbi1 = {
+ 	.num_resources	= ARRAY_SIZE(resources_qup_i2c_gsbi1),
+ 	.resource	= resources_qup_i2c_gsbi1,
+ };
++#endif
+ 
+ #ifdef CONFIG_MACH_APQ8064_DB600C
+ struct platform_device apq8064_device_qup_i2c_gsbi2 = {
+-- 
+1.9.1
+

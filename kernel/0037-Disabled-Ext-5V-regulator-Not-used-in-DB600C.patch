@@ -1,0 +1,192 @@
+From ad93ac2bc20f36a8ad5f25d681d755122c0c1554 Mon Sep 17 00:00:00 2001
+From: Parth Pancholi <parth.pancholi@einfochips.com>
+Date: Tue, 12 Apr 2016 13:38:40 +0530
+Subject: [PATCH 37/40] Disabled Ext 5V regulator, Not used in DB600C
+
+Internal SMPS used for generating 5V in DB600C.
+Configuring PMIC_MPP_7 & PMIC_MPP_8 for Wi-Fi/BT LEDs.
+User LED 2 (CPU_GPIO_3) Enabled to indicate Android bootup.
+
+Signed-off-by: eInfochips Team <ei-qc8064@einfochips.com>
+---
+ arch/arm/mach-msm/board-8064-camera.c    |  2 +-
+ arch/arm/mach-msm/board-8064-pmic.c      |  3 +++
+ arch/arm/mach-msm/board-8064-regulator.c | 12 +++++++++
+ arch/arm/mach-msm/board-8064.c           | 46 ++++++++++++++++++++++++++++++++
+ 4 files changed, 62 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm/mach-msm/board-8064-camera.c b/arch/arm/mach-msm/board-8064-camera.c
+index 4d2001b..76fad40 100644
+--- a/arch/arm/mach-msm/board-8064-camera.c
++++ b/arch/arm/mach-msm/board-8064-camera.c
+@@ -156,6 +156,7 @@ static struct msm_gpiomux_config apq8064_cam_common_configs[] = {
+ 			[GPIOMUX_SUSPENDED] = &cam_settings[0],
+ 		},
+ 	},
++#if 0
+ 	{
+ 		.gpio = 10,
+ 		.settings = {
+@@ -170,7 +171,6 @@ static struct msm_gpiomux_config apq8064_cam_common_configs[] = {
+ 			[GPIOMUX_SUSPENDED] = &cam_settings[8],
+ 		},
+ 	},
+-#if 0
+ 	/* reconfiguring gsbi4 in different mode, so disabled */
+ 	{
+ 		.gpio = 12,
+diff --git a/arch/arm/mach-msm/board-8064-pmic.c b/arch/arm/mach-msm/board-8064-pmic.c
+index 51af955..16afe0d 100644
+--- a/arch/arm/mach-msm/board-8064-pmic.c
++++ b/arch/arm/mach-msm/board-8064-pmic.c
+@@ -193,8 +193,11 @@ static struct pm8xxx_gpio_init pm8921_mpq_gpios[] __initdata = {
+ static struct pm8xxx_mpp_init pm8xxx_mpps[] __initdata = {
+ 	PM8921_MPP_INIT(3, D_OUTPUT, PM8921_MPP_DIG_LEVEL_VPH, DOUT_CTRL_LOW),
+ 	/* External 5V regulator enable; shared by HDMI and USB_OTG switches. */
++	/* In DB600C This MPPs are used as WiFi and BT LED GPIOs. */
++#ifndef CONFIG_MACH_APQ8064_DB600C
+ 	PM8921_MPP_INIT(7, D_OUTPUT, PM8921_MPP_DIG_LEVEL_VPH, DOUT_CTRL_LOW),
+ 	PM8921_MPP_INIT(8, D_OUTPUT, PM8921_MPP_DIG_LEVEL_S4, DOUT_CTRL_LOW),
++#endif
+ 	/*MPP9 is used to detect docking station connection/removal on Liquid*/
+ 	PM8921_MPP_INIT(9, D_INPUT, PM8921_MPP_DIG_LEVEL_S4, DIN_TO_INT),
+ 	/* PCIE_RESET_N */
+diff --git a/arch/arm/mach-msm/board-8064-regulator.c b/arch/arm/mach-msm/board-8064-regulator.c
+index 3cee329..51e1626 100644
+--- a/arch/arm/mach-msm/board-8064-regulator.c
++++ b/arch/arm/mach-msm/board-8064-regulator.c
+@@ -295,15 +295,19 @@ VREG_CONSUMERS(LVS2) = {
+ VREG_CONSUMERS(HDMI_MVS) = {
+ 	REGULATOR_SUPPLY("8921_hdmi_mvs",	NULL),
+ 	REGULATOR_SUPPLY("hdmi_mvs",		"hdmi_msm.0"),
++	REGULATOR_SUPPLY("vbus",        "msm_ehci_host.0"),
+ };
+ VREG_CONSUMERS(NCP) = {
+ 	REGULATOR_SUPPLY("8921_ncp",		NULL),
+ };
++/* In DB600C This External Regulator is not used */
++#ifndef CONFIG_MACH_APQ8064_DB600C
+ VREG_CONSUMERS(EXT_5V) = {
+ 	REGULATOR_SUPPLY("ext_5v",		NULL),
+ 	REGULATOR_SUPPLY("vbus",		"msm_ehci_host.0"),
+ };
+ 
++#endif
+ /* Regulators that are only present when using PM8917 */
+ VREG_CONSUMERS(8917_S1) = {
+ 	REGULATOR_SUPPLY("8921_s1",		NULL),
+@@ -568,8 +572,11 @@ VREG_CONSUMERS(BOOST) = {
+ struct gpio_regulator_platform_data
+ apq8064_gpio_regulator_pdata[] __devinitdata = {
+ 	/*        ID      vreg_name gpio_label   gpio   supply   active_low */
++	/* In DB600C This External Regulator is not used */
++#ifndef CONFIG_MACH_APQ8064_DB600C
+ 	GPIO_VREG(EXT_5V, "ext_5v", "ext_5v_en",
+ 			PM8921_MPP_PM_TO_SYS(7), NULL, 0),
++#endif
+ 	GPIO_VREG(EXT_3P3V, "ext_3p3v", "ext_3p3v_en",
+ 		  APQ8064_EXT_3P3V_REG_EN_GPIO, NULL, 0),
+ 	GPIO_VREG(EXT_TS_SW, "ext_ts_sw", "ext_ts_sw_en",
+@@ -617,8 +624,13 @@ msm8064_pm8921_regulator_pdata[] __devinitdata = {
+ 		0, 1),
+ 
+ 	/*           ID        name     always_on pd       en_t supply reg_ID */
++#ifndef CONFIG_MACH_APQ8064_DB600C
+ 	PM8XXX_VS300(USB_OTG,  "8921_usb_otg",  0, 0,         0, "ext_5v", 2),
+ 	PM8XXX_VS300(HDMI_MVS, "8921_hdmi_mvs", 0, 1,         0, "ext_5v", 3),
++#else
++	PM8XXX_VS300(USB_OTG,  "8921_usb_otg",  0, 0,         0, NULL, 2),
++	PM8XXX_VS300(HDMI_MVS, "8921_hdmi_mvs", 0, 1,         0, NULL, 3),
++#endif
+ };
+ 
+ /* PM8917 regulator constraints */
+diff --git a/arch/arm/mach-msm/board-8064.c b/arch/arm/mach-msm/board-8064.c
+index 9cae58d..dd35281 100644
+--- a/arch/arm/mach-msm/board-8064.c
++++ b/arch/arm/mach-msm/board-8064.c
+@@ -155,6 +155,9 @@
+ 
+ #ifdef CONFIG_MACH_APQ8064_DB600C
+ 
++/* User LED on DB600C */
++#define DB600C_USER_LED_2 3
++
+ /* Speaker power amplifier GPIO */
+ #define EXTERNAL_AMP1_EN_PMIC_GPIO      42
+ #define EXTERNAL_AMP2_EN_PMIC_MPP       2
+@@ -2485,6 +2488,8 @@ static void __init mpq8064_pcie_init(void)
+ 	}
+ }
+ 
++/* In DB600C SMPS is used to genetate this 5V. No need of external regulator */
++#ifndef CONFIG_MACH_APQ8064_DB600C
+ static struct platform_device apq8064_device_ext_5v_vreg __devinitdata = {
+ 	.name	= GPIO_REGULATOR_DEV_NAME,
+ 	.id	= PM8921_MPP_PM_TO_SYS(7),
+@@ -2493,6 +2498,7 @@ static struct platform_device apq8064_device_ext_5v_vreg __devinitdata = {
+ 			= &apq8064_gpio_regulator_pdata[GPIO_VREG_ID_EXT_5V],
+ 	},
+ };
++#endif
+ 
+ static struct platform_device apq8064_device_ext_mpp8_vreg __devinitdata = {
+ 	.name	= GPIO_REGULATOR_DEV_NAME,
+@@ -2578,7 +2584,9 @@ static struct platform_device *early_common_devices[] __initdata = {
+ };
+ 
+ static struct platform_device *pm8921_common_devices[] __initdata = {
++#ifndef CONFIG_MACH_APQ8064_DB600C
+ 	&apq8064_device_ext_5v_vreg,
++#endif
+ 	&apq8064_device_ext_mpp8_vreg,
+ 	&apq8064_device_ext_3p3v_vreg,
+ 	&apq8064_device_ssbi_pmic1,
+@@ -3804,6 +3812,44 @@ static void __init apq8064_cdp_init(void)
+ 	}
+ 
+ #ifdef CONFIG_MACH_APQ8064_DB600C
++	/* On USER LED 2. CPU GPIO 3 */
++	ret = gpio_request(DB600C_USER_LED_2, "led2");
++	if (ret < 0) {
++	    printk("%s: %d gpio request failed %d\n",
++				__func__, DB600C_USER_LED_2, ret);
++	} else {
++	    ret = gpio_export(DB600C_USER_LED_2, true);
++	    ret = gpio_direction_output(DB600C_USER_LED_2, 0);
++	    udelay(10);
++	    gpio_set_value(DB600C_USER_LED_2, 1);
++	    printk("gpio %d exported for user led\n", DB600C_USER_LED_2);
++	}
++
++	/* Enable wifi LED */
++	ret = gpio_request(PM8921_MPP_PM_TO_SYS(7), "wifi-led");
++	if (ret < 0) {
++	    printk("%s: %d level translator pmic mpp request failed %d\n",
++				__func__, 7, ret);
++	} else {
++	    ret = gpio_export(PM8921_MPP_PM_TO_SYS(7), true);
++	    ret = gpio_direction_output(PM8921_MPP_PM_TO_SYS(7), 0);
++	    udelay(10);
++	    gpio_set_value(PM8921_MPP_PM_TO_SYS(7), 0);
++	    printk("pmic mpp %d exported for wifi LED\n", PM8921_MPP_PM_TO_SYS(7));
++	}
++
++	/* Enable bt LED */
++	ret = gpio_request(PM8921_MPP_PM_TO_SYS(8), "bt-led");
++	if (ret < 0) {
++	    printk("%s: %d level translator pmic mpp request failed %d\n",
++				__func__,8,ret);
++	} else {
++	    ret = gpio_export(PM8921_MPP_PM_TO_SYS(8), true);
++	    ret = gpio_direction_output(PM8921_MPP_PM_TO_SYS(8), 0);
++	    udelay(10);
++	    gpio_set_value(PM8921_MPP_PM_TO_SYS(8), 0);
++	    printk("pmic mpp %d exported for bt LED\n", PM8921_MPP_PM_TO_SYS(8));
++	}
+ 
+ 	/* Enable Power amplifier for speaker1 */
+ 	ret = gpio_request(PM8921_GPIO_PM_TO_SYS(EXTERNAL_AMP1_EN_PMIC_GPIO),"power_amp_en");
+-- 
+1.9.1
+

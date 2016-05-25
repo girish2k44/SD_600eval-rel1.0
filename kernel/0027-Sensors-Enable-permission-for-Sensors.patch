@@ -1,0 +1,47 @@
+From 9b87f07db2fd0ba83808b6c418e5b427dfde355a Mon Sep 17 00:00:00 2001
+From: Girish Sharma <girish.sharma@einfochips.com>
+Date: Tue, 19 Jan 2016 20:05:40 +0530
+Subject: [PATCH 27/40] Sensors: Enable permission for Sensors
+
+This change is required to enable permissions for sensors sysfs entry
+
+Change-Id: Id42544520d901ad3ede8f8ed0ce8c148c7d76642
+Signed-off-by: eInfochips Team <ei-qc8064@einfochips.com>
+---
+ drivers/input/misc/lsm6ds3_core.c | 16 ++++++++--------
+ 1 file changed, 8 insertions(+), 8 deletions(-)
+
+diff --git a/drivers/input/misc/lsm6ds3_core.c b/drivers/input/misc/lsm6ds3_core.c
+index 5f5dfd4..eb7b9b7 100644
+--- a/drivers/input/misc/lsm6ds3_core.c
++++ b/drivers/input/misc/lsm6ds3_core.c
+@@ -1339,18 +1339,18 @@ static ssize_t set_cur_scale(struct device *dev, struct device_attribute *attr,
+ }
+ 
+ 
+-static DEVICE_ATTR(enable, S_IWUSR | S_IRUGO, get_enable, set_enable);
+-static DEVICE_ATTR(sampling_freq, S_IWUSR | S_IRUGO, get_sampling_freq,
++static DEVICE_ATTR(enable, 0666, get_enable, set_enable);
++static DEVICE_ATTR(sampling_freq, 0666, get_sampling_freq,
+ 							set_sampling_freq);
+-static DEVICE_ATTR(polling_rate, S_IWUSR | S_IRUGO, get_polling_rate,
++static DEVICE_ATTR(polling_rate, 0666, get_polling_rate,
+ 							set_polling_rate);
+-static DEVICE_ATTR(reset_steps, S_IWUSR, NULL, reset_steps);
+-static DEVICE_ATTR(max_delivery_rate, S_IWUSR | S_IRUGO, get_max_delivery_rate,
++static DEVICE_ATTR(reset_steps, 0666, NULL, reset_steps);
++static DEVICE_ATTR(max_delivery_rate, 0666, get_max_delivery_rate,
+ 							set_max_delivery_rate);
+-static DEVICE_ATTR(sampling_freq_avail, S_IRUGO, get_sampling_frequency_avail,
++static DEVICE_ATTR(sampling_freq_avail, 0666, get_sampling_frequency_avail,
+ 							NULL);
+-static DEVICE_ATTR(scale_avail, S_IRUGO, get_scale_avail, NULL);
+-static DEVICE_ATTR(scale, S_IWUSR | S_IRUGO, get_cur_scale, set_cur_scale);
++static DEVICE_ATTR(scale_avail, 0666, get_scale_avail, NULL);
++static DEVICE_ATTR(scale, 0666, get_cur_scale, set_cur_scale);
+ 
+ static struct attribute *lsm6ds3_accel_attribute[] = {
+ 	&dev_attr_enable.attr,
+-- 
+1.9.1
+

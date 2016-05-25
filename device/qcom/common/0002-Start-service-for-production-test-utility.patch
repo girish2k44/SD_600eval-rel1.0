@@ -1,0 +1,31 @@
+From 0bf4e2bc3fbe4f6bf7dcdb1d958dc9d882314d35 Mon Sep 17 00:00:00 2001
+From: eInfochips Team <ei-qc8064@einfochips.com>
+Date: Tue, 12 Apr 2016 18:22:37 +0530
+Subject: [PATCH 2/2] Start service for production test utility
+
+This changes will start a service which is required by Production test
+utility
+
+Change-Id: Ifdb46310a7dda1054fad79f0d6c573d5bafac93f
+Signed-off-by: eInfochips Team <ei-qc8064@einfochips.com>
+---
+ rootdir/etc/init.qcom.post_boot.sh | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/rootdir/etc/init.qcom.post_boot.sh b/rootdir/etc/init.qcom.post_boot.sh
+index 256a627..04fd113 100755
+--- a/rootdir/etc/init.qcom.post_boot.sh
++++ b/rootdir/etc/init.qcom.post_boot.sh
+@@ -203,6 +203,9 @@ case "$target" in
+          chmod -h 664 /sys/module/msm_dcvs/cores/cpu0/slack_time_min_us
+          chmod -h 664 /sys/module/msm_mpdecision/slack_time_max_us
+          chmod -h 664 /sys/module/msm_mpdecision/slack_time_min_us
++         # DB600c Production Utility Supported Binary Started
++         su -c '/system/bin/procSpool'&
++         echo "procSpool Started" > /data/test_procSpool.txt
+          soc_id=`cat /sys/devices/system/soc/soc0/id`
+          case "$soc_id" in
+              "130")
+-- 
+1.9.1
+

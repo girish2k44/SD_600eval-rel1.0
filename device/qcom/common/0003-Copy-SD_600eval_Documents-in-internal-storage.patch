@@ -1,0 +1,29 @@
+From 5c02abd016309366f38c7a7850a5d06b8b3f36d8 Mon Sep 17 00:00:00 2001
+From: Parth Pancholi <parth.pancholi@einfochips.com>
+Date: Wed, 25 May 2016 12:35:38 +0530
+Subject: [PATCH 3/3] Copy SD_600eval_Documents in internal storage
+
+SD_600eval specific Documentes copied into internal storage
+
+Change-Id: Icebc24813d92d78f21b467821c83603d6a0c70ec
+Signed-off-by: eInfochips Team <ei-qc8064@einfochips.com>
+---
+ rootdir/etc/init.qcom.post_boot.sh | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/rootdir/etc/init.qcom.post_boot.sh b/rootdir/etc/init.qcom.post_boot.sh
+index 04fd113..a0b9cdb 100755
+--- a/rootdir/etc/init.qcom.post_boot.sh
++++ b/rootdir/etc/init.qcom.post_boot.sh
+@@ -206,6 +206,8 @@ case "$target" in
+          # DB600c Production Utility Supported Binary Started
+          su -c '/system/bin/procSpool'&
+          echo "procSpool Started" > /data/test_procSpool.txt
++         # SD600eval Documents to store in internal storage
++         cp -r /data/SD_600eval_Documents/ /sdcard/
+          soc_id=`cat /sys/devices/system/soc/soc0/id`
+          case "$soc_id" in
+              "130")
+-- 
+1.9.1
+

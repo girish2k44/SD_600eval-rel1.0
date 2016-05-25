@@ -1,0 +1,30 @@
+From 0f32d83fcc6961715dfc2ad89d0c895f93724d21 Mon Sep 17 00:00:00 2001
+From: Girish Sharma <girish.sharma@einfochips.com>
+Date: Fri, 27 Nov 2015 15:47:13 +0530
+Subject: [PATCH 1/3] Proprietary path added.
+
+Libraries and binaries provided by Qualcomm build are added to build
+path to support APQ8064 based board.
+
+Change-Id: If95718abc1257ea7bc3835d03e59c1c499b1b457
+Signed-off-by: eInfochips Team <ei-qc8064@einfochips.com>
+---
+ msm8960.mk | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/msm8960.mk b/msm8960.mk
+index d3dc4f3..b995997 100644
+--- a/msm8960.mk
++++ b/msm8960.mk
+@@ -64,6 +64,8 @@ PRODUCT_PACKAGES += \
+     battery_monitor \
+     battery_shutdown
+ 
++$(call inherit-product, vendor/qcom/proprietary/prebuilt/target/product/msm8960/prebuilt.mk)
++
+ # Wallpapers
+ PRODUCT_PACKAGES += Galaxy4
+ PRODUCT_PACKAGES += HoloSpiralWallpaper
+-- 
+1.9.1
+

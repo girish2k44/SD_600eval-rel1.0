@@ -1,0 +1,167 @@
+From 10407df785161bab940146c0455131e4b14d52ea Mon Sep 17 00:00:00 2001
+From: Girish Sharma <girish.sharma@einfochips.com>
+Date: Fri, 27 Nov 2015 19:18:00 +0530
+Subject: [PATCH 10/40] Initial support for eInfochips DB600C SBC
+
+Added DB600C 96boards community board initial BSP support
+
+Change-Id: I56bbc7f0baf91855e6bf7786235ff19aa2e9b0cd
+Signed-off-by: eInfochips Team <ei-qc8064@einfochips.com>
+---
+ arch/arm/mach-msm/Kconfig              | 10 ++++++++++
+ arch/arm/mach-msm/Makefile             |  1 +
+ arch/arm/mach-msm/board-8064-gpiomux.c |  3 ++-
+ arch/arm/mach-msm/board-8064-pmic.c    |  5 ++++-
+ arch/arm/mach-msm/board-8064-storage.c |  6 +++++-
+ arch/arm/mach-msm/board-8064.c         | 20 ++++++++++++++++++--
+ 6 files changed, 40 insertions(+), 5 deletions(-)
+
+diff --git a/arch/arm/mach-msm/Kconfig b/arch/arm/mach-msm/Kconfig
+index 99d0262..4687c6e 100644
+--- a/arch/arm/mach-msm/Kconfig
++++ b/arch/arm/mach-msm/Kconfig
+@@ -878,6 +878,16 @@ config MACH_APQ8064_CDP
+ 	help
+ 	  Support for the Qualcomm APQ8064 CDP device.
+ 
++config MACH_APQ8064_DB600C
++	depends on ARCH_APQ8064
++	default y
++	bool "APQ8064 DB600C DEVELOPMENT PLATFORM"
++	help
++	  Support for the eInfochips DB600C
++	  Single Board Computer (SBC).
++	  This board is for 96boards community
++	  For more information visit "https://www.96boards.org".
++
+ config MACH_APQ8064_MTP
+ 	depends on ARCH_APQ8064
+ 	bool "APQ8064 MTP"
+diff --git a/arch/arm/mach-msm/Makefile b/arch/arm/mach-msm/Makefile
+index 50d3bd9..840d949 100644
+--- a/arch/arm/mach-msm/Makefile
++++ b/arch/arm/mach-msm/Makefile
+@@ -269,6 +269,7 @@ board-8960-all-objs += board-8960.o board-8960-camera.o board-8960-display.o boa
+ board-8930-all-objs += board-8930.o board-8930-camera.o board-8930-display.o board-8930-pmic.o board-8930-storage.o board-8930-gpiomux.o devices-8930.o board-8930-gpu.o
+ board-8064-all-objs += board-8064.o board-8064-pmic.o board-8064-storage.o board-8064-gpiomux.o board-8064-camera.o board-8064-display.o board-8064-gpu.o
+ obj-$(CONFIG_MACH_MSM8960_CDP) += board-8960-all.o board-8960-regulator.o
++obj-$(CONFIG_MACH_APQ8064_DB600C) += board-8064-all.o board-8064-regulator.o
+ obj-$(CONFIG_MACH_MSM8960_MTP) += board-8960-all.o board-8960-regulator.o
+ obj-$(CONFIG_MACH_MSM8960_FLUID) += board-8960-all.o board-8960-regulator.o
+ obj-$(CONFIG_MACH_MSM8930_CDP) += board-8930-all.o board-8930-regulator-pm8038.o board-8930-regulator-pm8917.o
+diff --git a/arch/arm/mach-msm/board-8064-gpiomux.c b/arch/arm/mach-msm/board-8064-gpiomux.c
+index 41eee63..5173981 100644
+--- a/arch/arm/mach-msm/board-8064-gpiomux.c
++++ b/arch/arm/mach-msm/board-8064-gpiomux.c
+@@ -1568,7 +1568,8 @@ void __init apq8064_init_gpiomux(void)
+ 				ARRAY_SIZE(apq8064_hsic_configs));
+ #endif
+ 
+-	if (machine_is_apq8064_cdp() || machine_is_apq8064_liquid())
++	if (machine_is_apq8064_cdp() || machine_is_apq8064_liquid()
++		 || machine_is_apq8064_db600c())
+ 		msm_gpiomux_install(apq8064_mxt_configs,
+ 			ARRAY_SIZE(apq8064_mxt_configs));
+ 
+diff --git a/arch/arm/mach-msm/board-8064-pmic.c b/arch/arm/mach-msm/board-8064-pmic.c
+index 383535d..a5291c5 100644
+--- a/arch/arm/mach-msm/board-8064-pmic.c
++++ b/arch/arm/mach-msm/board-8064-pmic.c
+@@ -217,7 +217,8 @@ void __init apq8064_pm8xxx_gpio_mpp_init(void)
+ 	else
+ 		apq8064_configure_gpios(pm8917_gpios, ARRAY_SIZE(pm8917_gpios));
+ 
+-	if (machine_is_apq8064_cdp() || machine_is_apq8064_liquid()) {
++	if (machine_is_apq8064_cdp() || machine_is_apq8064_liquid()
++		 || machine_is_apq8064_db600c()) {
+ 		if (socinfo_get_pmic_model() != PMIC_MODEL_PM8917)
+ 			apq8064_configure_gpios(pm8921_cdp_kp_gpios,
+ 					ARRAY_SIZE(pm8921_cdp_kp_gpios));
+@@ -547,6 +548,8 @@ void __init apq8064_init_pmic(void)
+ 		apq8064_pm8921_bms_pdata.battery_type = BATT_DESAY;
+ 	} else if (machine_is_apq8064_cdp()) {
+ 		apq8064_pm8921_chg_pdata.has_dc_supply = true;
++	} else if (machine_is_apq8064_db600c()) {
++		apq8064_pm8921_chg_pdata.has_dc_supply = true;
+ 	}
+ 
+ 	if (!machine_is_apq8064_mtp() && !machine_is_apq8064_liquid())
+diff --git a/arch/arm/mach-msm/board-8064-storage.c b/arch/arm/mach-msm/board-8064-storage.c
+index b07e2fd..9d8498e7 100644
+--- a/arch/arm/mach-msm/board-8064-storage.c
++++ b/arch/arm/mach-msm/board-8064-storage.c
+@@ -357,6 +357,10 @@ void __init apq8064_init_mmc(void)
+ 			apq8064_sdc3_pdata->wpswitch_gpio = 0;
+ 			apq8064_sdc3_pdata->is_wpswitch_active_low = false;
+ 		}
++		if (!machine_is_apq8064_db600c()) {
++			apq8064_sdc3_pdata->wpswitch_gpio = 0;
++			apq8064_sdc3_pdata->is_wpswitch_active_low = false;
++		}
+ 		if (machine_is_mpq8064_cdp() || machine_is_mpq8064_hrd() ||
+ 			machine_is_mpq8064_dtv()) {
+ 			int rc;
+@@ -383,7 +387,7 @@ void __init apq8064_init_mmc(void)
+ 				apq8064_sdc3_pdata->status_irq = 0;
+ 			}
+ 		}
+-		if (machine_is_apq8064_cdp()) {
++		if (machine_is_apq8064_cdp() || machine_is_apq8064_db600c()) {
+ 			int i;
+ 
+ 			for (i = 0;
+diff --git a/arch/arm/mach-msm/board-8064.c b/arch/arm/mach-msm/board-8064.c
+index 36625dc..be84f05 100644
+--- a/arch/arm/mach-msm/board-8064.c
++++ b/arch/arm/mach-msm/board-8064.c
+@@ -3172,6 +3172,8 @@ static void __init register_i2c_devices(void)
+ 	/* Build the matching 'supported_machs' bitmask */
+ 	if (machine_is_apq8064_cdp())
+ 		mach_mask = I2C_SURF;
++	else if (machine_is_apq8064_db600c())
++		mach_mask = I2C_SURF;
+ 	else if (machine_is_apq8064_mtp())
+ 		mach_mask = I2C_FFA;
+ 	else if (machine_is_apq8064_liquid())
+@@ -3427,7 +3429,8 @@ static void __init apq8064_cdp_init(void)
+ 		platform_device_register(&mpq8064_device_uartdm_gsbi6);
+ 	}
+ 
+-	if (machine_is_apq8064_cdp() || machine_is_apq8064_liquid())
++	if (machine_is_apq8064_cdp() || machine_is_apq8064_liquid()
++		 || machine_is_apq8064_db600c())
+ 		platform_device_register(&cdp_kp_pdev);
+ 
+ 	if (machine_is_apq8064_mtp())
+@@ -3438,7 +3441,8 @@ static void __init apq8064_cdp_init(void)
+ 		platform_device_register(&mpq_keypad_device);
+ 	}
+ 
+-	if (machine_is_apq8064_cdp() || machine_is_mpq8064_hrd()) {
++	if (machine_is_apq8064_cdp() || machine_is_mpq8064_hrd()
++		 || machine_is_apq8064_db600c()) {
+ 		int ret;
+ 		struct pm8xxx_mpp_config_data sata_pwr_cfg = {
+ 			.type = PM8XXX_MPP_TYPE_D_OUTPUT,
+@@ -3468,6 +3472,18 @@ MACHINE_START(APQ8064_CDP, "QCT APQ8064 CDP")
+ 	.restart = msm_restart,
+ MACHINE_END
+ 
++MACHINE_START(APQ8064_DB600C, "QCT APQ8064 DB600C")
++	.map_io = apq8064_map_io,
++	.reserve = apq8064_reserve,
++	.init_irq = apq8064_init_irq,
++	.handle_irq = gic_handle_irq,
++	.timer = &msm_timer,
++	.init_machine = apq8064_cdp_init,
++	.init_early = apq8064_allocate_memory_regions,
++	.init_very_early = apq8064_early_reserve,
++	.restart = msm_restart,
++MACHINE_END
++
+ MACHINE_START(APQ8064_MTP, "QCT APQ8064 MTP")
+ 	.map_io = apq8064_map_io,
+ 	.reserve = apq8064_reserve,
+-- 
+1.9.1
+

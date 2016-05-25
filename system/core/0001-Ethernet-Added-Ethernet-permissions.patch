@@ -1,0 +1,43 @@
+From 27e4a32c3d058291c6bdc927d94f841a585f266d Mon Sep 17 00:00:00 2001
+From: Girish Sharma <girish.sharma@einfochips.com>
+Date: Mon, 18 Jan 2016 21:15:23 +0530
+Subject: [PATCH] Ethernet: Added Ethernet permissions
+
+These changes are done with refrence of device/qcom/common
+to provide permissions to /dev/eth0 for Android upper layer
+
+Change-Id: I6d8a2ebec728f28890417bc4428686c0a21703df
+Signed-off-by: eInfochips Team <ei-qc8064@einfochips.com>
+---
+ rootdir/init.rc | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/rootdir/init.rc b/rootdir/init.rc
+index 2a5a626..11f0dc1 100644
+--- a/rootdir/init.rc
++++ b/rootdir/init.rc
+@@ -272,6 +272,10 @@ on post-fs-data
+     mkdir /data/local 0751 root root
+     mkdir /data/misc/media 0700 media media
+ 
++   # Setup paths used for socket communication with the dhcp daemon(dhcpd)
++    mkdir /data/misc/dhcp 0770 dhcp dhcp
++    chown dhcp dhcp /data/misc/dhcp
++
+     # For security reasons, /data/local/tmp should always be empty.
+     # Do not place files or directories in /data/local/tmp
+     mkdir /data/local/tmp 0771 shell shell
+@@ -468,6 +472,10 @@ on property:sys.sysctl.tcp_def_init_rwnd=*
+ 
+ ## Daemon processes to be run by init.
+ ##
++service dhcpcd_eth0 /system/bin/dhcpcd -dABKL
++    group dhcp
++    disabled
++    oneshot
+ service ueventd /sbin/ueventd
+     class core
+     critical
+-- 
+1.9.1
+

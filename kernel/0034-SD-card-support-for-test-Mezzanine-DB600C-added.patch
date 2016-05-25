@@ -1,0 +1,75 @@
+From 7426257b9848eab70a3deadfca2b86155d5e292e Mon Sep 17 00:00:00 2001
+From: Parth Pancholi <parth.pancholi@einfochips.com>
+Date: Tue, 12 Apr 2016 13:18:05 +0530
+Subject: [PATCH 34/40] SD card support for test Mezzanine-DB600C added
+
+SDC2 enabled for test Mezzanine Card. As if now skipping Regulator
+Settings for SDC2
+
+Signed-off-by: eInfochips Team <ei-qc8064@einfochips.com>
+---
+ arch/arm/configs/msm8960_defconfig     |  2 +-
+ arch/arm/mach-msm/board-8064-storage.c |  1 +
+ drivers/mmc/host/msm_sdcc.c            | 14 ++++++++++++++
+ 3 files changed, 16 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm/configs/msm8960_defconfig b/arch/arm/configs/msm8960_defconfig
+index 34620f0..954815d 100644
+--- a/arch/arm/configs/msm8960_defconfig
++++ b/arch/arm/configs/msm8960_defconfig
+@@ -494,7 +494,7 @@ CONFIG_MMC_BLOCK_MINORS=32
+ CONFIG_MMC_TEST=m
+ CONFIG_MMC_MSM=y
+ CONFIG_MMC_MSM_SDC1_8_BIT_SUPPORT=y
+-# CONFIG_MMC_MSM_SDC2_SUPPORT is not set
++CONFIG_MMC_MSM_SDC2_SUPPORT=y
+ CONFIG_MMC_MSM_SDC3_SUPPORT=y
+ CONFIG_MMC_MSM_SDC3_WP_SUPPORT=y
+ CONFIG_MMC_MSM_SPS_SUPPORT=y
+diff --git a/arch/arm/mach-msm/board-8064-storage.c b/arch/arm/mach-msm/board-8064-storage.c
+index 3f2067e..437a1b2 100644
+--- a/arch/arm/mach-msm/board-8064-storage.c
++++ b/arch/arm/mach-msm/board-8064-storage.c
+@@ -278,6 +278,7 @@ static struct mmc_platform_data sdc2_data = {
+ 	.sup_clk_cnt	= ARRAY_SIZE(sdc2_sup_clk_rates),
+ 	.pin_data	= &mmc_slot_pin_data[SDCC2],
+ 	.sdiowakeup_irq = MSM_GPIO_TO_INT(61),
++	.xpc_cap	= 1,
+ 	.msm_bus_voting_data = &sps_to_ddr_bus_voting_data,
+ };
+ static struct mmc_platform_data *apq8064_sdc2_pdata = &sdc2_data;
+diff --git a/drivers/mmc/host/msm_sdcc.c b/drivers/mmc/host/msm_sdcc.c
+index 722cded..89068f6 100644
+--- a/drivers/mmc/host/msm_sdcc.c
++++ b/drivers/mmc/host/msm_sdcc.c
+@@ -2914,6 +2914,16 @@ static u32 msmsdcc_setup_pwr(struct msmsdcc_host *host, struct mmc_ios *ios)
+ 	int ret = 0;
+ 	struct mmc_host *mmc = host->mmc;
+ 
++#ifdef CONFIG_MACH_APQ8064_DB600C
++/* skip regulator setting for mmc1 if DB600C board.
++ * mmc1 is SD card on test Mezzanine board.
++ * Has direct supply from externel regulator.
++ */
++	if (!strcmp(mmc_hostname(host->mmc), "mmc1")) {
++		goto skip_regulator_setting;
++	}
++#endif
++
+ 	if (host->plat->translate_vdd && !host->sdio_gpio_lpm)
+ 		ret = host->plat->translate_vdd(mmc_dev(mmc), ios->vdd);
+ 	else if (!host->plat->translate_vdd && !host->sdio_gpio_lpm)
+@@ -2925,6 +2935,10 @@ static u32 msmsdcc_setup_pwr(struct msmsdcc_host *host, struct mmc_ios *ios)
+ 		goto out;
+ 	}
+ 
++#ifdef CONFIG_MACH_APQ8064_DB600C
++skip_regulator_setting:
++#endif
++
+ 	switch (ios->power_mode) {
+ 	case MMC_POWER_OFF:
+ 		pwr = MCI_PWR_OFF;
+-- 
+1.9.1
+

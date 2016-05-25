@@ -1,0 +1,29 @@
+From 27d3a06bdd8211cefd3ca2480384c1342ec47846 Mon Sep 17 00:00:00 2001
+From: Girish Sharma <girish.sharma@einfochips.com>
+Date: Fri, 29 Jan 2016 20:33:47 +0530
+Subject: [PATCH 31/40] PMIC: Enable LDO L15 of PM8921
+
+L15 is required by Mezzanine card
+
+Change-Id: I0e08f1046eaab90ebf068b4f01dce537625af57d
+Signed-off-by: eInfochips Team <ei-qc8064@einfochips.com>
+---
+ arch/arm/mach-msm/board-8064-regulator.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/arch/arm/mach-msm/board-8064-regulator.c b/arch/arm/mach-msm/board-8064-regulator.c
+index 985c890..13069fc 100644
+--- a/arch/arm/mach-msm/board-8064-regulator.c
++++ b/arch/arm/mach-msm/board-8064-regulator.c
+@@ -676,7 +676,7 @@ apq8064_rpm_regulator_init_data[] __devinitdata = {
+ 	RPM_LDO(L12, 0, 1, 0, 1200000, 1200000, "8921_s4",     0,     0),
+ 	RPM_LDO(L13, 0, 0, 0, 2220000, 2220000, NULL,          0,     0),
+ 	RPM_LDO(L14, 0, 1, 0, 1800000, 1800000, NULL,          0,     0),
+-	RPM_LDO(L15, 0, 1, 0, 1800000, 2950000, NULL,          0,     0),
++	RPM_LDO(L15, 1, 1, 0, 1800000, 1800000, NULL,          0, 10000),
+ 	RPM_LDO(L16, 0, 1, 0, 2800000, 2800000, NULL,          0,     0),
+ 	RPM_LDO(L17, 0, 1, 0, 2000000, 2000000, NULL,          0,     0),
+ 	RPM_LDO(L18, 0, 1, 0, 1300000, 1800000, "8921_s4",     0,     0),
+-- 
+1.9.1
+

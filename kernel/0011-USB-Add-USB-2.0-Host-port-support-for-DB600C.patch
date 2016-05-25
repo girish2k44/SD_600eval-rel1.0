@@ -1,0 +1,27 @@
+From 86c5442f8e5567f4ecd3150b78933eead4643f49 Mon Sep 17 00:00:00 2001
+From: Girish Sharma <girish.sharma@einfochips.com>
+Date: Fri, 16 Oct 2015 15:11:46 +0530
+Subject: [PATCH 11/40] USB: Add USB 2.0 Host port support for DB600C
+
+Added db600c in ehci host for USB
+
+Signed-off-by: eInfochips Team <ei-qc8064@einfochips.com>
+---
+ arch/arm/mach-msm/board-8064.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/arch/arm/mach-msm/board-8064.c b/arch/arm/mach-msm/board-8064.c
+index be84f05..0ce9ce8 100644
+--- a/arch/arm/mach-msm/board-8064.c
++++ b/arch/arm/mach-msm/board-8064.c
+@@ -931,6 +931,7 @@ static struct msm_usb_host_platform_data msm_ehci_host_pdata4;
+ static void __init apq8064_ehci_host_init(void)
+ {
+ 	if (machine_is_apq8064_liquid() || machine_is_mpq8064_cdp() ||
++		machine_is_apq8064_cdp() || machine_is_apq8064_db600c() ||
+ 		machine_is_mpq8064_hrd() || machine_is_mpq8064_dtv()) {
+ 		if (machine_is_apq8064_liquid())
+ 			msm_ehci_host_pdata3.dock_connect_irq =
+-- 
+1.9.1
+

@@ -1,0 +1,79 @@
+From 8d26f8efabb63b6412e76d7a9e69370cf694851c Mon Sep 17 00:00:00 2001
+From: Parth Pancholi <parth.pancholi@einfochips.com>
+Date: Thu, 3 Dec 2015 14:16:48 +0530
+Subject: [PATCH 14/40] External Amplifier EN GPIOs Added for DB600C
+
+External Amplifier EN PMIC GPIO and MPP configured
+
+Signed-off-by: eInfochips Team <ei-qc8064@einfochips.com>
+---
+ arch/arm/mach-msm/board-8064.c | 39 +++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 39 insertions(+)
+
+diff --git a/arch/arm/mach-msm/board-8064.c b/arch/arm/mach-msm/board-8064.c
+index 6ba4267..6f60324 100644
+--- a/arch/arm/mach-msm/board-8064.c
++++ b/arch/arm/mach-msm/board-8064.c
+@@ -144,6 +144,14 @@
+ #define PCIE_WAKE_N_PMIC_GPIO_DRAGON 6
+ #define PCIE_RST_N_CPU_GPIO_DRAGON   27
+ 
++#ifdef CONFIG_MACH_APQ8064_DB600C
++
++/* Speaker power amplifier GPIO */
++#define EXTERNAL_AMP1_EN_PMIC_GPIO      42
++#define EXTERNAL_AMP2_EN_PMIC_MPP       2
++
++#endif
++
+ #ifdef CONFIG_KERNEL_MSM_CONTIG_MEM_REGION
+ static unsigned msm_contig_mem_size = MSM_CONTIG_MEM_SIZE;
+ static int __init msm_contig_mem_size_setup(char *p)
+@@ -3406,6 +3414,7 @@ static void __init apq8064_allocate_memory_regions(void)
+ 
+ static void __init apq8064_cdp_init(void)
+ {
++	int ret = 0;
+ 	if (meminfo_init(SYS_MEMORY, SZ_256M) < 0)
+ 		pr_err("meminfo_init() failed!\n");
+ 	if (machine_is_apq8064_mtp() &&
+@@ -3472,6 +3481,36 @@ static void __init apq8064_cdp_init(void)
+ 		platform_device_register(&apq8064_device_ext_3p3v_mpp4_vreg);
+ 		platform_device_register(&apq8064_device_sata);
+ 	}
++
++#ifdef CONFIG_MACH_APQ8064_DB600C
++
++	/* Enable Power amplifier for speaker1 */
++	ret = gpio_request(PM8921_GPIO_PM_TO_SYS(EXTERNAL_AMP1_EN_PMIC_GPIO),"power_amp_en");
++	if (ret < 0) {
++	    printk("%s: %d level translator pmic gpio request failed %d\n",
++	                    __func__,EXTERNAL_AMP1_EN_PMIC_GPIO,ret);
++	}else {
++	    ret = gpio_export(PM8921_GPIO_PM_TO_SYS(EXTERNAL_AMP1_EN_PMIC_GPIO),true);
++	    ret = gpio_direction_output(PM8921_GPIO_PM_TO_SYS(EXTERNAL_AMP1_EN_PMIC_GPIO),0);
++	    udelay(10);
++	    gpio_set_value(PM8921_GPIO_PM_TO_SYS(EXTERNAL_AMP1_EN_PMIC_GPIO),1);
++	    printk("pmic gpio %d exported for left amplifier\n",EXTERNAL_AMP1_EN_PMIC_GPIO);
++	}
++
++	/* Enable Power amplifier for speaker2 */
++	ret = gpio_request(PM8921_MPP_PM_TO_SYS(EXTERNAL_AMP2_EN_PMIC_MPP),"power_amp_en");
++	if (ret < 0) {
++	    printk("%s: %d level translator pmic mpp request failed %d\n",
++	                    __func__,EXTERNAL_AMP2_EN_PMIC_MPP,ret);
++	}else {
++	    ret = gpio_export(PM8921_MPP_PM_TO_SYS(EXTERNAL_AMP2_EN_PMIC_MPP),true);
++	    ret = gpio_direction_output(PM8921_MPP_PM_TO_SYS(EXTERNAL_AMP2_EN_PMIC_MPP),0);
++	    udelay(10);
++	    gpio_set_value(PM8921_MPP_PM_TO_SYS(EXTERNAL_AMP2_EN_PMIC_MPP),1);
++	    printk("pmic mpp %d exported for right amplifier\n",EXTERNAL_AMP2_EN_PMIC_MPP);
++	}
++
++#endif
+ }
+ 
+ MACHINE_START(APQ8064_CDP, "QCT APQ8064 CDP")
+-- 
+1.9.1
+

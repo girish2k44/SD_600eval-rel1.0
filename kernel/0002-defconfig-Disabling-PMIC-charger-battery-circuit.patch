@@ -1,0 +1,31 @@
+From eca2b3df83ab9cc3f7d7be9b05a762e1458a5e0e Mon Sep 17 00:00:00 2001
+From: Kiran Rudramuni <kchitrik@codeaurora.org>
+Date: Thu, 15 Oct 2015 18:45:23 +0530
+Subject: [PATCH 02/40] defconfig: Disabling PMIC charger battery circuit
+
+This change make board to boot without battery
+A fake battery driver is provided to defconfig
+
+Signed-off-by: eInfochips Team <ei-qc8064@einfochips.com>
+---
+ arch/arm/configs/msm8960_defconfig | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm/configs/msm8960_defconfig b/arch/arm/configs/msm8960_defconfig
+index cc25d09..4723e28 100644
+--- a/arch/arm/configs/msm8960_defconfig
++++ b/arch/arm/configs/msm8960_defconfig
+@@ -353,7 +353,9 @@ CONFIG_POWER_SUPPLY=y
+ # CONFIG_BATTERY_MSM is not set
+ CONFIG_ISL9519_CHARGER=y
+ CONFIG_SMB349_CHARGER=y
+-CONFIG_PM8921_CHARGER=y
++CONFIG_MSM_FAKE_BATTERY=y
++CONFIG_PM8921_CHARGER=n
++CONFIG_PM8XXX_CCADC=n
+ CONFIG_PM8921_BMS=y
+ CONFIG_BATTERY_BCL=y
+ CONFIG_SENSORS_PM8XXX_ADC=y
+-- 
+1.9.1
+

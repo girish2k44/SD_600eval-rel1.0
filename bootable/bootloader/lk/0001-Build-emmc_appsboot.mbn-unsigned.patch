@@ -1,0 +1,33 @@
+From 35cb4fcc0d3dbe944982e67ea22a8f163ffd2d11 Mon Sep 17 00:00:00 2001
+From: Girish Sharma <girish.sharma@einfochips.com>
+Date: Fri, 27 Nov 2015 15:31:52 +0530
+Subject: [PATCH 1/2] Build emmc_appsboot.mbn unsigned
+
+This change is done to compile emmc_appsboot.mbn as unsigned.
+Since it will allow other boot images to run with same application
+bootloader.
+Resolves error "boot image tampered" during booting board with other
+build boot images.
+
+Change-Id: Ie77af7af099eaa4920d58f3025affe59660b8f64
+Signed-off-by: eInfochips Team <ei-qc8064@einfochips.com>
+---
+ AndroidBoot.mk | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/AndroidBoot.mk b/AndroidBoot.mk
+index df193dd..a80775f 100644
+--- a/AndroidBoot.mk
++++ b/AndroidBoot.mk
+@@ -2,7 +2,7 @@
+ 
+ # Set flags if we need to include security libs
+ ifeq ($(TARGET_BOOTIMG_SIGNED),true)
+-  SIGNED_KERNEL := SIGNED_KERNEL=1
++  SIGNED_KERNEL := SIGNED_KERNEL=0
+ else
+   SIGNED_KERNEL := SIGNED_KERNEL=0
+ endif
+-- 
+1.9.1
+

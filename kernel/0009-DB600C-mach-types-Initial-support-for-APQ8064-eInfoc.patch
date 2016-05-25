@@ -1,0 +1,28 @@
+From b8ccd38e2fc893fb34c8ed1ba65955ada0677af1 Mon Sep 17 00:00:00 2001
+From: Girish Sharma <girish.sharma@einfochips.com>
+Date: Fri, 16 Oct 2015 12:54:33 +0530
+Subject: [PATCH 09/40] DB600C: mach-types: Initial support for APQ8064
+ eInfochips platforms
+
+Added mach-types for eInfochips DB600C board
+
+Signed-off-by: eInfochips Team <ei-qc8064@einfochips.com>
+---
+ arch/arm/tools/mach-types | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/arch/arm/tools/mach-types b/arch/arm/tools/mach-types
+index aa50e16..aa0a7b4 100644
+--- a/arch/arm/tools/mach-types
++++ b/arch/arm/tools/mach-types
+@@ -1185,6 +1185,7 @@ ipod_touch_2g		MACH_IPOD_TOUCH_2G	IPOD_TOUCH_2G		3890
+ da850_pqab		MACH_DA850_PQAB		DA850_PQAB		3891
+ msm7627a_evb		MACH_MSM7627A_EVB	MSM7627A_EVB		3934
+ apq8064_cdp		MACH_APQ8064_CDP	APQ8064_CDP		3948
++apq8064_db600c	MACH_APQ8064_DB600C	APQ8064_DB600C	3954
+ apq8064_mtp		MACH_APQ8064_MTP	APQ8064_MTP		3949
+ apq8064_liquid		MACH_APQ8064_LIQUID	APQ8064_LIQUID		3951
+ mpq8064_cdp		MACH_MPQ8064_CDP	MPQ8064_CDP		3993
+-- 
+1.9.1
+

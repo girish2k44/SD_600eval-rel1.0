@@ -1,0 +1,100 @@
+From d1a53d55241858053464a7c20fdcc41de8560320 Mon Sep 17 00:00:00 2001
+From: Parth Pancholi <parth.pancholi@einfochips.com>
+Date: Tue, 12 Apr 2016 18:29:08 +0530
+Subject: [PATCH 2/2] WiFi: LED support enabled
+
+This changes will add support for WiFi LED
+
+Change-Id: Iabb1f6cc70d40193b09cd7334772a5cf0ee56f05
+Signed-off-by: eInfochips Team <ei-qc8064@einfochips.com>
+---
+ CORE/HDD/src/wlan_hdd_main.c | 38 ++++++++++++++++++++++++++++++++++++--
+ 1 file changed, 36 insertions(+), 2 deletions(-)
+
+diff --git a/CORE/HDD/src/wlan_hdd_main.c b/CORE/HDD/src/wlan_hdd_main.c
+index 71a3a65..664da01 100644
+--- a/CORE/HDD/src/wlan_hdd_main.c
++++ b/CORE/HDD/src/wlan_hdd_main.c
+@@ -115,6 +115,8 @@ int wlan_hdd_ftm_start(hdd_context_t *pAdapter);
+ #include <mach/subsystem_restart.h>
+ #include <wlan_hdd_hostapd.h>
+ #include <wlan_hdd_softap_tx_rx.h>
++#include <linux/gpio.h>
++
+ #include "cfgApi.h"
+ #include "wlan_hdd_dev_pwr.h"
+ #ifdef WLAN_BTAMP_FEATURE
+@@ -145,6 +147,12 @@ int wlan_hdd_ftm_start(hdd_context_t *pAdapter);
+ #define MEMORY_DEBUG_STR ""
+ #endif
+ 
++#ifdef CONFIG_MACH_APQ8064_DB600C
++#include <mach/board.h>
++#define DB600C_WIFI_LED  202 /* PM8921 MPP 07 */
++#endif
++
++
+ /* the Android framework expects this param even though we don't use it */
+ #define BUF_LEN 20
+ static char fwpath_buffer[BUF_LEN];
+@@ -190,6 +198,11 @@ static struct wake_lock wlan_wake_lock;
+ /* set when SSR is needed after unload */
+ static e_hdd_ssr_required isSsrRequired = HDD_SSR_NOT_REQUIRED;
+ 
++#ifdef CONFIG_MACH_APQ8064_DB600C
++extern struct db600c_board_info board_info;
++static int gpio_ret = 0;
++#endif
++
+ //internal function declaration
+ static VOS_STATUS wlan_hdd_framework_restart(hdd_context_t *pHddCtx);
+ static void wlan_hdd_restart_init(hdd_context_t *pHddCtx);
+@@ -6016,7 +6029,6 @@ int hdd_wlan_startup(struct device *dev )
+          {{0x00, 0x0A, 0xF5, 0x89, 0x89, 0xFF}};
+       unsigned int serialno;
+       int i;
+-
+       serialno = wcnss_get_serial_number();
+       if ((0 != serialno) &&
+           (0 == memcmp(&default_address, &pHddCtx->cfg_ini->intfMacAddr[0],
+@@ -6546,7 +6558,20 @@ static int hdd_driver_init( void)
+       send_btc_nlink_msg(WLAN_MODULE_UP_IND, 0);
+ 
+       pr_info("%s: driver loaded\n", WLAN_MODULE_NAME);
+-   }
++      /* Enable wlan_led */
++      gpio_ret = gpio_request(DB600C_WIFI_LED,"wlan_led");
++      if (gpio_ret < 0) {
++		printk("%s: %d wlan_led gpio export failed with %d\n",
++                      __func__,DB600C_WIFI_LED,gpio_ret);
++      }else{
++		gpio_ret = gpio_export(DB600C_WIFI_LED,true);
++		gpio_ret = gpio_direction_output(DB600C_WIFI_LED,1);
++		udelay(10);
++		/* set wlan_led to high */
++		gpio_set_value(DB600C_WIFI_LED,1);
++		printk("gpio %d High (wlan_led) \n",DB600C_WIFI_LED);
++		}
++	}
+ 
+    EXIT();
+ 
+@@ -6658,6 +6683,15 @@ done:
+    wake_lock_destroy(&wlan_wake_lock);
+ #endif
+    pr_info("%s: driver unloaded\n", WLAN_MODULE_NAME);
++   /* set wlan_led gpio to low */
++   if (gpio_ret < 0) {
++      printk("%s: %d wlan_led gpio export failed with %d\n",
++                   __func__,DB600C_WIFI_LED,gpio_ret);
++   }else {
++      gpio_set_value(DB600C_WIFI_LED,0);
++      printk("gpio %d Low (wlan_led)\n",DB600C_WIFI_LED);
++      gpio_free(DB600C_WIFI_LED);
++   }
+ }
+ 
+ /**---------------------------------------------------------------------------
+-- 
+1.9.1
+

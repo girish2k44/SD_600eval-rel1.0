@@ -1,0 +1,153 @@
+From 1119c47d833804d6ff4ff4774d1c924502610e44 Mon Sep 17 00:00:00 2001
+From: Parth Pancholi <parth.pancholi@einfochips.com>
+Date: Sat, 16 Jan 2016 17:50:15 +0530
+Subject: [PATCH 17/40] Added SPI Device Support Statically
+
+RTC enabled and AudioAmp GPIO Modified according to HW
+
+Signed-off-by: eInfochips Team <ei-qc8064@einfochips.com>
+---
+ arch/arm/configs/msm8960_defconfig       |  2 +-
+ arch/arm/mach-msm/board-8064-pmic.c      |  8 ++++++--
+ arch/arm/mach-msm/board-8064-regulator.c |  4 +++-
+ arch/arm/mach-msm/board-8064.c           | 23 +++++++++++++++++++----
+ 4 files changed, 29 insertions(+), 8 deletions(-)
+
+diff --git a/arch/arm/configs/msm8960_defconfig b/arch/arm/configs/msm8960_defconfig
+index 1eb222f..0495d63 100644
+--- a/arch/arm/configs/msm8960_defconfig
++++ b/arch/arm/configs/msm8960_defconfig
+@@ -346,7 +346,7 @@ CONFIG_I2C_CHARDEV=y
+ CONFIG_I2C_QUP=y
+ CONFIG_SPI=y
+ CONFIG_SPI_QUP=y
+-CONFIG_SPI_SPIDEV=m
++CONFIG_SPI_SPIDEV=y
+ CONFIG_SLIMBUS_MSM_CTRL=y
+ CONFIG_DEBUG_GPIO=y
+ CONFIG_GPIO_SYSFS=y
+diff --git a/arch/arm/mach-msm/board-8064-pmic.c b/arch/arm/mach-msm/board-8064-pmic.c
+index a8fc003..85ce06d 100644
+--- a/arch/arm/mach-msm/board-8064-pmic.c
++++ b/arch/arm/mach-msm/board-8064-pmic.c
+@@ -125,7 +125,11 @@ static struct pm8xxx_gpio_init pm8921_gpios[] __initdata = {
+ 	PM8921_GPIO_INPUT(35, PM_GPIO_PULL_UP_30),
+ 	PM8921_GPIO_INPUT(38, PM_GPIO_PULL_UP_30),
+ 	/* TABLA CODEC RESET */
++#ifndef CONFIG_MACH_APQ8064_DB600C
+ 	PM8921_GPIO_OUTPUT(34, 0, MED),
++#else
++	PM8921_GPIO_OUTPUT(40, 0, MED),
++#endif
+ 	PM8921_GPIO_OUTPUT(13, 0, HIGH),               /* PCIE_CLK_PWR_EN */
+ 	PM8921_GPIO_INPUT(6, PM_GPIO_PULL_UP_30),     /* PCIE_WAKE_N */
+ };
+@@ -405,8 +409,8 @@ apq8064_pm8921_irq_pdata __devinitdata = {
+ 
+ static struct pm8xxx_rtc_platform_data
+ apq8064_pm8921_rtc_pdata = {
+-	.rtc_write_enable       = false,
+-	.rtc_alarm_powerup      = false,
++	.rtc_write_enable       = true,
++	.rtc_alarm_powerup      = true,
+ };
+ 
+ static int apq8064_pm8921_therm_mitigation[] = {
+diff --git a/arch/arm/mach-msm/board-8064-regulator.c b/arch/arm/mach-msm/board-8064-regulator.c
+index 81a79fb..985c890 100644
+--- a/arch/arm/mach-msm/board-8064-regulator.c
++++ b/arch/arm/mach-msm/board-8064-regulator.c
+@@ -202,6 +202,8 @@ VREG_CONSUMERS(S8) = {
+ VREG_CONSUMERS(LVS1) = {
+ 	REGULATOR_SUPPLY("8921_lvs1",		NULL),
+ 	REGULATOR_SUPPLY("iris_vddio",		"wcnss_wlan.0"),
++	REGULATOR_SUPPLY("sdc_vdd",		"msm_sdcc.4"),
++	REGULATOR_SUPPLY("sdc_vdd_io",		"msm_sdcc.4"),
+ };
+ VREG_CONSUMERS(LVS3) = {
+ 	REGULATOR_SUPPLY("8921_lvs3",		NULL),
+@@ -653,7 +655,7 @@ static struct rpm_regulator_init_data
+ apq8064_rpm_regulator_init_data[] __devinitdata = {
+ 	/*	ID a_on pd ss min_uV   max_uV  supply sys_uA  freq  fm  ss_fm */
+ 	RPM_SMPS(S1, 1, 1, 0, 1225000, 1225000, NULL, 100000, 3p20, NONE, NONE),
+-	RPM_SMPS(S2, 0, 1, 0, 1300000, 1300000, NULL,      0, 1p60, NONE, NONE),
++	RPM_SMPS(S2, 1, 1, 0, 1300000, 1300000, NULL, 100000, 1p60, NONE, NONE),
+ 	RPM_SMPS(S3, 0, 1, 1,  500000, 1150000, NULL, 100000, 4p80, NONE, NONE),
+ 	RPM_SMPS(S4, 1, 1, 0, 1800000, 1800000, NULL, 100000, 1p60, AUTO, AUTO),
+ 	RPM_SMPS(S7, 0, 0, 0, 1300000, 1300000, NULL, 100000, 3p20, NONE, NONE),
+diff --git a/arch/arm/mach-msm/board-8064.c b/arch/arm/mach-msm/board-8064.c
+index 89254c0..3302857 100644
+--- a/arch/arm/mach-msm/board-8064.c
++++ b/arch/arm/mach-msm/board-8064.c
+@@ -2721,6 +2721,16 @@ static struct msm_spi_platform_data apq8064_qup_spi_gsbi5_pdata = {
+ #define KS8851_IRQ_GPIO		43
+ 
+ static struct spi_board_info spi_board_info[] __initdata = {
++#ifdef CONFIG_MACH_APQ8064_DB600C
++	{
++		.modalias = "spidev",
++		.irq = -1,
++		.max_speed_hz = 4 * 1000 * 1000,       /* max sample rate at 3V */
++		.bus_num = 0,
++		.chip_select = 0,
++		.mode = SPI_MODE_0,
++	},
++#else
+ 	{
+ 		.modalias               = "ks8851",
+ 		.irq                    = MSM_GPIO_TO_INT(KS8851_IRQ_GPIO),
+@@ -2736,6 +2746,7 @@ static struct spi_board_info spi_board_info[] __initdata = {
+ 		.chip_select		= 3,
+ 		.mode			= SPI_MODE_0,
+ 	},
++#endif
+ };
+ 
+ static struct slim_boardinfo apq8064_slim_devices[] = {
+@@ -2767,10 +2778,12 @@ static struct msm_i2c_platform_data apq8064_i2c_qup_gsbi4_pdata = {
+ 	.src_clk_rate = 24000000,
+ };
+ 
++#ifndef CONFIG_MACH_APQ8064_DB600C
+ static struct msm_i2c_platform_data mpq8064_i2c_qup_gsbi5_pdata = {
+ 	.clk_freq = 100000,
+ 	.src_clk_rate = 24000000,
+ };
++#endif
+ 
+ #ifdef CONFIG_MACH_APQ8064_DB600C
+ static struct msm_i2c_platform_data apq8064_i2c_qup_gsbi2_pdata = {
+@@ -2836,8 +2849,10 @@ static void __init apq8064_i2c_init(void)
+ 		apq8064_device_qup_i2c_gsbi4.dev.platform_data =
+ 					&apq8064_i2c_qup_gsbi4_pdata;
+ 	}
++#ifndef CONFIG_MACH_APQ8064_DB600C
+ 	mpq8064_device_qup_i2c_gsbi5.dev.platform_data =
+ 					&mpq8064_i2c_qup_gsbi5_pdata;
++#endif
+ }
+ 
+ #if defined(CONFIG_KS8851) || defined(CONFIG_KS8851_MODULE)
+@@ -3553,15 +3568,15 @@ static void __init apq8064_cdp_init(void)
+ 	}
+ 
+ 	/* Enable Power amplifier for speaker2 */
+-	ret = gpio_request(PM8921_MPP_PM_TO_SYS(EXTERNAL_AMP2_EN_PMIC_MPP),"power_amp_en");
++	ret = gpio_request(PM8821_MPP_PM_TO_SYS(EXTERNAL_AMP2_EN_PMIC_MPP),"power_amp_en");
+ 	if (ret < 0) {
+ 	    printk("%s: %d level translator pmic mpp request failed %d\n",
+ 	                    __func__,EXTERNAL_AMP2_EN_PMIC_MPP,ret);
+ 	}else {
+-	    ret = gpio_export(PM8921_MPP_PM_TO_SYS(EXTERNAL_AMP2_EN_PMIC_MPP),true);
+-	    ret = gpio_direction_output(PM8921_MPP_PM_TO_SYS(EXTERNAL_AMP2_EN_PMIC_MPP),0);
++	    ret = gpio_export(PM8821_MPP_PM_TO_SYS(EXTERNAL_AMP2_EN_PMIC_MPP),true);
++	    ret = gpio_direction_output(PM8821_MPP_PM_TO_SYS(EXTERNAL_AMP2_EN_PMIC_MPP),0);
+ 	    udelay(10);
+-	    gpio_set_value(PM8921_MPP_PM_TO_SYS(EXTERNAL_AMP2_EN_PMIC_MPP),1);
++	    gpio_set_value(PM8821_MPP_PM_TO_SYS(EXTERNAL_AMP2_EN_PMIC_MPP),1);
+ 	    printk("pmic mpp %d exported for right amplifier\n",EXTERNAL_AMP2_EN_PMIC_MPP);
+ 	}
+ 
+-- 
+1.9.1
+

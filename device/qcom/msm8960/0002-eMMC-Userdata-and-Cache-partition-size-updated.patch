@@ -1,0 +1,32 @@
+From 33b5ad72d7f03baa76f5f422e2d7cf6323b93dcb Mon Sep 17 00:00:00 2001
+From: Girish Sharma <girish.sharma@einfochips.com>
+Date: Tue, 19 Jan 2016 10:31:41 +0530
+Subject: [PATCH 2/3] eMMC: Userdata and Cache partition size updated
+
+Android images size of userdata and cache is updated according to eMMC partition size.
+
+Change-Id: I9bf4e6bae1f00b08c98e2cd139219d8a896618b6
+Signed-off-by: eInfochips Team <ei-qc8064@einfochips.com>
+---
+ BoardConfig.mk | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/BoardConfig.mk b/BoardConfig.mk
+index 7364624..adf41c4 100644
+--- a/BoardConfig.mk
++++ b/BoardConfig.mk
+@@ -59,9 +59,9 @@ BOARD_EGL_CFG := device/qcom/$(TARGET_PRODUCT)/egl.cfg
+ BOARD_BOOTIMAGE_PARTITION_SIZE := 23068672 # 22M
+ BOARD_RECOVERYIMAGE_PARTITION_SIZE := 23068672 # 22M
+ BOARD_SYSTEMIMAGE_PARTITION_SIZE := 536870912
+-BOARD_USERDATAIMAGE_PARTITION_SIZE := 10737401856
++BOARD_USERDATAIMAGE_PARTITION_SIZE := 12884901888 # 12GB #10737401856
+ 
+-BOARD_CACHEIMAGE_PARTITION_SIZE := 33554432
++BOARD_CACHEIMAGE_PARTITION_SIZE := 67108864 # 64M #33554432
+ BOARD_PERSISTIMAGE_PARTITION_SIZE := 5242880
+ BOARD_TOMBSTONESIMAGE_PARTITION_SIZE := 268435456
+ BOARD_FLASH_BLOCK_SIZE := 131072 # (BOARD_KERNEL_PAGESIZE * 64)
+-- 
+1.9.1
+

@@ -1,0 +1,384 @@
+From 912b7de7bd65244b8c811b5fd0af07c055656bd3 Mon Sep 17 00:00:00 2001
+From: Parth Pancholi <parth.pancholi@einfochips.com>
+Date: Tue, 12 Apr 2016 13:25:22 +0530
+Subject: [PATCH 36/40] HSIC USB support added for DB600C-Mezzanine-Card
+
+HSIC USB HUB Support Added for Test Mezzanine Card.
+Shared GPIO between Camera & HSIC is removed from Camera file.
+
+Signed-off-by: eInfochips Team <ei-qc8064@einfochips.com>
+---
+ arch/arm/mach-msm/board-8064-camera.c    | 10 +++++---
+ arch/arm/mach-msm/board-8064-gpiomux.c   | 34 ++++++++++++++++++++++++++
+ arch/arm/mach-msm/board-8064-regulator.c |  3 ++-
+ arch/arm/mach-msm/board-8064.c           | 42 ++++++++++++++++++++++++++++++++
+ arch/arm/mach-msm/devices-8064.c         | 10 ++++++++
+ drivers/usb/host/ehci-msm-hsic.c         | 20 +++++++++++++--
+ 6 files changed, 112 insertions(+), 7 deletions(-)
+
+diff --git a/arch/arm/mach-msm/board-8064-camera.c b/arch/arm/mach-msm/board-8064-camera.c
+index 5fc83b0..4d2001b 100644
+--- a/arch/arm/mach-msm/board-8064-camera.c
++++ b/arch/arm/mach-msm/board-8064-camera.c
+@@ -140,6 +140,7 @@ static struct msm_gpiomux_config apq8064_cam_common_configs[] = {
+ 			[GPIOMUX_SUSPENDED] = &cam_settings[0],
+ 		},
+ 	},
++#if 0
+ 	{
+ 		.gpio = 34,
+ 		.settings = {
+@@ -147,6 +148,7 @@ static struct msm_gpiomux_config apq8064_cam_common_configs[] = {
+ 			[GPIOMUX_SUSPENDED] = &cam_settings[0],
+ 		},
+ 	},
++#endif
+ 	{
+ 		.gpio = 107,
+ 		.settings = {
+@@ -444,7 +446,7 @@ static struct camera_vreg_t apq_8064_cam_vreg[] = {
+ 
+ #define CAML_RSTN PM8921_GPIO_PM_TO_SYS(28)
+ #define CAMP_PDWN 30
+-#define CAMR_RSTN 34
++/* #define CAMR_RSTN 34 */
+ #define CAMR_PDWN PM8921_GPIO_PM_TO_SYS(31)
+ 
+ static struct gpio apq8064_common_cam_gpio[] = {
+@@ -481,13 +483,13 @@ static struct gpio apq8064_front_cam_gpio[] = {
+ /*	{12, GPIOF_DIR_IN, "CAMIF_I2C_DATA"},
+ 	{13, GPIOF_DIR_IN, "CAMIF_I2C_CLK"},*/
+ 	{CAMR_PDWN, GPIOF_DIR_OUT, "CAMR_PDWN"},
+-	{CAMR_RSTN, GPIOF_DIR_OUT, "CAM_RESET"},
++/*	{CAMR_RSTN, GPIOF_DIR_OUT, "CAM_RESET"}, */
+ };
+ 
+ static struct msm_gpio_set_tbl apq8064_front_cam_gpio_set_tbl[] = {
+ 	{CAMR_PDWN, GPIOF_OUT_INIT_LOW, 10000},
+-	{CAMR_RSTN, GPIOF_OUT_INIT_LOW, 10000},
+-	{CAMR_RSTN, GPIOF_OUT_INIT_HIGH, 10000},
++/*	{CAMR_RSTN, GPIOF_OUT_INIT_LOW, 10000}, */
++/*	{CAMR_RSTN, GPIOF_OUT_INIT_HIGH, 10000}, */
+ };
+ 
+ static struct msm_camera_gpio_conf apq8064_front_cam_gpio_conf = {
+diff --git a/arch/arm/mach-msm/board-8064-gpiomux.c b/arch/arm/mach-msm/board-8064-gpiomux.c
+index 9699f7d..cc573ad 100644
+--- a/arch/arm/mach-msm/board-8064-gpiomux.c
++++ b/arch/arm/mach-msm/board-8064-gpiomux.c
+@@ -557,6 +557,32 @@ static struct gpiomux_setting hsic_wakeup_sus_cfg = {
+ 	.dir = GPIOMUX_IN,
+ };
+ 
++#ifdef CONFIG_MACH_APQ8064_DB600C
++static struct gpiomux_setting hsic_hub_rst_act_cfg = {
++	.func = GPIOMUX_FUNC_GPIO,
++	.drv = GPIOMUX_DRV_8MA,
++	.pull = GPIOMUX_PULL_NONE,
++	.dir = GPIOMUX_IN,
++};
++
++static struct gpiomux_setting hsic_hub_rst_sus_cfg = {
++	.func = GPIOMUX_FUNC_GPIO,
++	.drv = GPIOMUX_DRV_2MA,
++	.pull = GPIOMUX_PULL_NONE,
++	.dir = GPIOMUX_IN,
++};
++
++static struct msm_gpiomux_config hsic_hub_reset_cfg[] = {
++	{
++		.gpio = 34,
++		.settings = {
++			[GPIOMUX_ACTIVE] = &hsic_hub_rst_act_cfg,
++			[GPIOMUX_SUSPENDED] = &hsic_hub_rst_sus_cfg,
++		},
++	},
++};
++#endif
++
+ static struct msm_gpiomux_config apq8064_hsic_configs[] = {
+ 	{
+ 		.gpio = 88,               /*HSIC_STROBE */
+@@ -1774,6 +1800,14 @@ void __init apq8064_init_gpiomux(void)
+ 	if (machine_is_apq8064_mtp())
+ 		msm_gpiomux_install(apq8064_hsic_configs,
+ 				ARRAY_SIZE(apq8064_hsic_configs));
++
++#ifdef CONFIG_MACH_APQ8064_DB600C
++	msm_gpiomux_install(apq8064_hsic_configs,
++		ARRAY_SIZE(apq8064_hsic_configs));
++
++	msm_gpiomux_install(hsic_hub_reset_cfg,
++		ARRAY_SIZE(hsic_hub_reset_cfg));
++#endif
+ #endif
+ 
+ 	if (machine_is_apq8064_cdp() || machine_is_apq8064_liquid()
+diff --git a/arch/arm/mach-msm/board-8064-regulator.c b/arch/arm/mach-msm/board-8064-regulator.c
+index 9a83275..3cee329 100644
+--- a/arch/arm/mach-msm/board-8064-regulator.c
++++ b/arch/arm/mach-msm/board-8064-regulator.c
+@@ -98,6 +98,7 @@ VREG_CONSUMERS(L14) = {
+ };
+ VREG_CONSUMERS(L15) = {
+ 	REGULATOR_SUPPLY("8921_l15",		NULL),
++	/* REGULATOR_SUPPLY("HSIC_VDDCX",		"msm_hsic_host"), */
+ };
+ VREG_CONSUMERS(L16) = {
+ 	REGULATOR_SUPPLY("8921_l16",		NULL),
+@@ -162,7 +163,7 @@ VREG_CONSUMERS(S3) = {
+ 	REGULATOR_SUPPLY("HSUSB_VDDCX",		"msm_otg"),
+ 	REGULATOR_SUPPLY("HSUSB_VDDCX",		"msm_ehci_host.0"),
+ 	REGULATOR_SUPPLY("HSUSB_VDDCX",		"msm_ehci_host.1"),
+-	REGULATOR_SUPPLY("HSIC_VDDCX",		"msm_hsic_host"),
++	/* REGULATOR_SUPPLY("HSIC_VDDCX",		"msm_hsic_host"), */
+ 	REGULATOR_SUPPLY("riva_vddcx",		"wcnss_wlan.0"),
+ 	REGULATOR_SUPPLY("vp_pcie",             "msm_pcie"),
+ 	REGULATOR_SUPPLY("vptx_pcie",           "msm_pcie"),
+diff --git a/arch/arm/mach-msm/board-8064.c b/arch/arm/mach-msm/board-8064.c
+index f3bb63c..9cae58d 100644
+--- a/arch/arm/mach-msm/board-8064.c
++++ b/arch/arm/mach-msm/board-8064.c
+@@ -180,6 +180,9 @@
+ #define TOUCH_INT_GPIO     55
+ #define TOUCH_RST_GPIO     33
+ 
++/* Hub reset gpio */
++#define HSIC_HUB_RESET		34
++
+ #endif
+ 
+ #ifdef CONFIG_KERNEL_MSM_CONTIG_MEM_REGION
+@@ -3675,6 +3678,16 @@ static void __init apq8064_common_init(void)
+ 			platform_device_register(&mdm_8064_device);
+ 		}
+ 	}
++
++#ifdef CONFIG_MACH_APQ8064_DB600C
++	msm_hsic_pdata.log2_irq_thresh = 5,
++	apq8064_device_hsic_host.dev.platform_data = &msm_hsic_pdata;
++	device_initialize(&apq8064_device_hsic_host.dev);
++
++	mdm_8064_device.dev.platform_data = &mdm_platform_data;
++	platform_device_register(&mdm_8064_device);
++#endif
++
+ 	platform_device_register(&apq8064_slim_ctrl);
+ 	slim_register_board_info(apq8064_slim_devices,
+ 		ARRAY_SIZE(apq8064_slim_devices));
+@@ -3691,6 +3704,30 @@ static void __init apq8064_allocate_memory_regions(void)
+ 	apq8064_allocate_fb_region();
+ }
+ 
++#if CONFIG_MACH_APQ8064_DB600C
++static void apq8064_gpio_config(int gpio, char *name, int val, int dir)
++{
++	int ret;
++
++	ret = gpio_request(gpio, name);
++	if (ret < 0) {
++		printk("%s: gpio_request(%d) failed ret:%d\n", __func__, gpio, ret);
++	} else {
++
++		if (0 == dir) {
++			ret = gpio_direction_output(gpio, val);
++		} else {
++			gpio_direction_input(gpio);
++		}
++
++		ret = gpio_export(gpio, true);
++		if (ret < 0) {
++			printk("%s: gpio_export(%d) failed ret:%d\n", __func__, gpio, ret);
++		}
++	}
++}
++#endif
++
+ static void __init apq8064_cdp_init(void)
+ {
+ 	int ret = 0;
+@@ -3743,6 +3780,11 @@ static void __init apq8064_cdp_init(void)
+ 		platform_device_register(&mpq_keypad_device);
+ 	}
+ 
++#ifdef CONFIG_MACH_APQ8064_DB600C
++	/* Reset Hub */
++	apq8064_gpio_config(HSIC_HUB_RESET, "hsic_hub_reset", 1, 0);
++#endif
++
+ 	if (machine_is_apq8064_cdp() || machine_is_mpq8064_hrd()
+ 		 || machine_is_apq8064_db600c()) {
+ 		int ret;
+diff --git a/arch/arm/mach-msm/devices-8064.c b/arch/arm/mach-msm/devices-8064.c
+index c502429..aced9aa 100644
+--- a/arch/arm/mach-msm/devices-8064.c
++++ b/arch/arm/mach-msm/devices-8064.c
+@@ -2822,11 +2822,17 @@ struct msm_mpm_device_data apq8064_mpm_dev_data __initdata = {
+ #define AP2MDM_ERRFATAL			18
+ #define MDM2AP_STATUS			49
+ #define AP2MDM_STATUS			48
++#ifndef CONFIG_MACH_APQ8064_DB600C
+ #define AP2MDM_SOFT_RESET		27
++#endif
+ #define I2S_AP2MDM_SOFT_RESET	0
++#ifndef CONFIG_MACH_APQ8064_DB600C
+ #define AP2MDM_WAKEUP			35
++#endif
+ #define I2S_AP2MDM_WAKEUP		44
++#ifndef CONFIG_MACH_APQ8064_DB600C
+ #define MDM2AP_PBLRDY			46
++#endif
+ #define AMDM2AP_PBLRDY_DSDA2	31
+ #define I2S_MDM2AP_PBLRDY		81
+ 
+@@ -2868,6 +2874,7 @@ static struct resource mdm_resources[] = {
+ 		.name	= "AP2MDM_STATUS",
+ 		.flags	= IORESOURCE_IO,
+ 	},
++#ifndef CONFIG_MACH_APQ8064_DB600C
+ 	{
+ 		.start	= AP2MDM_SOFT_RESET,
+ 		.end	= AP2MDM_SOFT_RESET,
+@@ -2886,6 +2893,7 @@ static struct resource mdm_resources[] = {
+ 		.name	= "MDM2AP_PBLRDY",
+ 		.flags	= IORESOURCE_IO,
+ 	},
++#endif
+ };
+ 
+ static struct resource mdm_dsda2_amdm_resources[] = {
+@@ -2913,6 +2921,7 @@ static struct resource mdm_dsda2_amdm_resources[] = {
+ 		.name	= "AP2MDM_STATUS",
+ 		.flags	= IORESOURCE_IO,
+ 	},
++#ifndef CONFIG_MACH_APQ8064_DB600C
+ 	{
+ 		.start	= AP2MDM_SOFT_RESET,
+ 		.end	= AP2MDM_SOFT_RESET,
+@@ -2925,6 +2934,7 @@ static struct resource mdm_dsda2_amdm_resources[] = {
+ 		.name	= "AP2MDM_WAKEUP",
+ 		.flags	= IORESOURCE_IO,
+ 	},
++#endif
+ 	{
+ 		.start	= AMDM2AP_PBLRDY_DSDA2,
+ 		.end	= AMDM2AP_PBLRDY_DSDA2,
+diff --git a/drivers/usb/host/ehci-msm-hsic.c b/drivers/usb/host/ehci-msm-hsic.c
+index cfa7f6a..1bd69bd 100644
+--- a/drivers/usb/host/ehci-msm-hsic.c
++++ b/drivers/usb/host/ehci-msm-hsic.c
+@@ -354,6 +354,7 @@ static const int vdd_val[VDD_TYPE_MAX][VDD_VAL_MAX] = {
+ 		},
+ };
+ 
++#if 0
+ static int msm_hsic_init_vddcx(struct msm_hsic_hcd *mehci, int init)
+ {
+ 	int ret = 0;
+@@ -381,6 +382,7 @@ static int msm_hsic_init_vddcx(struct msm_hsic_hcd *mehci, int init)
+ 	if (!init)
+ 		goto disable_reg;
+ 
++	printk("min_vol: %d, max_vol: %d\n", min_vol, max_vol);
+ 	ret = regulator_set_voltage(mehci->hsic_vddcx, min_vol, max_vol);
+ 	if (ret) {
+ 		dev_err(mehci->dev, "unable to set the voltage"
+@@ -404,6 +406,7 @@ reg_enable_err:
+ 	return ret;
+ 
+ }
++#endif
+ 
+ static int __maybe_unused ulpi_read(struct msm_hsic_hcd *mehci, u32 reg)
+ {
+@@ -635,7 +638,7 @@ static int msm_hsic_reset(struct msm_hsic_hcd *mehci)
+ static int msm_hsic_suspend(struct msm_hsic_hcd *mehci)
+ {
+ 	struct usb_hcd *hcd = hsic_to_hcd(mehci);
+-	int cnt = 0, ret;
++	int cnt = 0/*, ret */;
+ 	u32 val;
+ 	int none_vol, max_vol;
+ 
+@@ -705,9 +708,11 @@ static int msm_hsic_suspend(struct msm_hsic_hcd *mehci)
+ 	none_vol = vdd_val[mehci->vdd_type][VDD_NONE];
+ 	max_vol = vdd_val[mehci->vdd_type][VDD_MAX];
+ 
++#if 0
+ 	ret = regulator_set_voltage(mehci->hsic_vddcx, none_vol, max_vol);
+ 	if (ret < 0)
+ 		dev_err(mehci->dev, "unable to set vddcx voltage for VDD MIN\n");
++#endif
+ 
+ 	if (mehci->bus_perf_client && debug_bus_voting_enabled) {
+ 		mehci->bus_vote = false;
+@@ -731,7 +736,7 @@ static int msm_hsic_suspend(struct msm_hsic_hcd *mehci)
+ static int msm_hsic_resume(struct msm_hsic_hcd *mehci)
+ {
+ 	struct usb_hcd *hcd = hsic_to_hcd(mehci);
+-	int cnt = 0, ret;
++	int cnt = 0/*, ret */;
+ 	unsigned temp;
+ 	int min_vol, max_vol;
+ 	unsigned long flags;
+@@ -762,9 +767,11 @@ static int msm_hsic_resume(struct msm_hsic_hcd *mehci)
+ 	min_vol = vdd_val[mehci->vdd_type][VDD_MIN];
+ 	max_vol = vdd_val[mehci->vdd_type][VDD_MAX];
+ 
++#if 0
+ 	ret = regulator_set_voltage(mehci->hsic_vddcx, min_vol, max_vol);
+ 	if (ret < 0)
+ 		dev_err(mehci->dev, "unable to set nominal vddcx voltage (no VDD MIN)\n");
++#endif
+ 
+ 	clk_prepare_enable(mehci->core_clk);
+ 	clk_prepare_enable(mehci->phy_clk);
+@@ -1752,12 +1759,14 @@ static int __devinit ehci_hsic_msm_probe(struct platform_device *pdev)
+ 		goto unmap;
+ 	}
+ 
++#if 0
+ 	ret = msm_hsic_init_vddcx(mehci, 1);
+ 	if (ret) {
+ 		dev_err(&pdev->dev, "unable to initialize VDDCX\n");
+ 		ret = -ENODEV;
+ 		goto deinit_clocks;
+ 	}
++#endif
+ 
+ 	init_completion(&mehci->rt_completion);
+ 	init_completion(&mehci->gpt0_completion);
+@@ -1853,15 +1862,20 @@ static int __devinit ehci_hsic_msm_probe(struct platform_device *pdev)
+ 	if (pdev->dev.parent)
+ 		pm_runtime_put_sync(pdev->dev.parent);
+ 
++	printk("EI, %s returned successfully\n", __func__);
+ 	return 0;
+ 
+ unconfig_gpio:
+ 	destroy_workqueue(ehci_wq);
+ 	msm_hsic_config_gpios(mehci, 0);
+ deinit_vddcx:
++#if 0
+ 	msm_hsic_init_vddcx(mehci, 0);
++#endif
++#if 0
+ deinit_clocks:
+ 	msm_hsic_init_clocks(mehci, 0);
++#endif
+ unmap:
+ 	iounmap(hcd->regs);
+ put_hcd:
+@@ -1909,7 +1923,9 @@ static int __devexit ehci_hsic_msm_remove(struct platform_device *pdev)
+ 	destroy_workqueue(ehci_wq);
+ 
+ 	msm_hsic_config_gpios(mehci, 0);
++#if 0
+ 	msm_hsic_init_vddcx(mehci, 0);
++#endif
+ 
+ 	msm_hsic_init_clocks(mehci, 0);
+ 	wake_lock_destroy(&mehci->wlock);
+-- 
+1.9.1
+

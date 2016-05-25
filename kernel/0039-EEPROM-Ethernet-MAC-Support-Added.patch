@@ -1,0 +1,251 @@
+From 70bc79688c0e0a784911a61cbf5d24b12d9047c4 Mon Sep 17 00:00:00 2001
+From: Parth Pancholi <parth.pancholi@einfochips.com>
+Date: Tue, 12 Apr 2016 13:58:13 +0530
+Subject: [PATCH 39/40] EEPROM-Ethernet-MAC Support Added
+
+Ethernet MAC Address now read from I2C EEPROM,
+if not found than auto asign.
+Header UART Reconfigured.
+
+Signed-off-by: eInfochips Team <ei-qc8064@einfochips.com>
+---
+ arch/arm/mach-msm/board-8064-gpiomux.c          |  9 +++---
+ arch/arm/mach-msm/board-8064.c                  | 37 ++++++++++++++++++++++++-
+ arch/arm/mach-msm/include/mach/board.h          | 18 ++++++++++++
+ drivers/net/ethernet/atheros/atl1c/atl1c_main.c | 34 +++++++++++++++++++++++
+ 4 files changed, 92 insertions(+), 6 deletions(-)
+
+diff --git a/arch/arm/mach-msm/board-8064-gpiomux.c b/arch/arm/mach-msm/board-8064-gpiomux.c
+index cc573ad..e6a6380 100644
+--- a/arch/arm/mach-msm/board-8064-gpiomux.c
++++ b/arch/arm/mach-msm/board-8064-gpiomux.c
+@@ -377,13 +377,11 @@ static struct gpiomux_setting slimbus = {
+ 	.pull = GPIOMUX_PULL_KEEPER,
+ };
+ 
+-#ifndef CONFIG_MACH_APQ8064_DB600C
+ static struct gpiomux_setting gsbi1_uart_config = {
+ 	.func = GPIOMUX_FUNC_1,
+ 	.drv = GPIOMUX_DRV_16MA,
+ 	.pull = GPIOMUX_PULL_NONE,
+ };
+-#endif
+ 
+ static struct gpiomux_setting ext_regulator_config = {
+ 	.func = GPIOMUX_FUNC_GPIO,
+@@ -729,7 +727,6 @@ static struct msm_gpiomux_config apq8064_gsbi_configs[] __initdata = {
+         },
+     },
+ #endif
+-#ifndef CONFIG_MACH_APQ8064_DB600C
+ 	{
+ 		.gpio      = 18,                /* GSBI1 UART TX */
+ 		.settings = {
+@@ -742,7 +739,6 @@ static struct msm_gpiomux_config apq8064_gsbi_configs[] __initdata = {
+ 			[GPIOMUX_SUSPENDED] = &gsbi1_uart_config,
+ 		},
+ 	},
+-#endif
+ 
+ #ifndef CONFIG_MACH_APQ8064_DB600C
+ #if defined(CONFIG_KS8851) || defined(CONFIG_KS8851_MODULE)
+@@ -1492,6 +1488,7 @@ static struct msm_gpiomux_config sglte2_qsc_configs[] __initdata = {
+ };
+ 
+ #ifdef CONFIG_MACH_APQ8064_DB600C
++#if 0
+ 
+ static struct gpiomux_setting gsbi1_uartdm_active = {
+     .func = GPIOMUX_FUNC_1,
+@@ -1535,7 +1532,7 @@ static struct msm_gpiomux_config apq8064_uartdm_gsbi1_configs[] __initdata = {
+         },
+     },
+ };
+-
++#endif
+ #else
+ 
+ static struct gpiomux_setting gsbi4_uartdm_active = {
+@@ -1769,9 +1766,11 @@ void __init apq8064_init_gpiomux(void)
+ 					ARRAY_SIZE(sglte2_qsc_configs));
+ 
+ #ifdef CONFIG_MACH_APQ8064_DB600C
++#if 0
+ 			/* GSBI1 UART GPIOs for Primary IPC */
+             msm_gpiomux_install(apq8064_uartdm_gsbi1_configs,
+                 ARRAY_SIZE(apq8064_uartdm_gsbi1_configs));
++#endif
+ #else
+ 			/* GSBI4 UART GPIOs for Primary IPC */
+ 			msm_gpiomux_install(apq8064_uartdm_gsbi4_configs,
+diff --git a/arch/arm/mach-msm/board-8064.c b/arch/arm/mach-msm/board-8064.c
+index dd35281..b97bfe7 100644
+--- a/arch/arm/mach-msm/board-8064.c
++++ b/arch/arm/mach-msm/board-8064.c
+@@ -85,6 +85,9 @@
+ #include <linux/input/lsm6dx0.h>
+ #include <linux/i2c/at24.h>
+ #include <linux/input/himax8526.h>
++#include <linux/fs.h>
++#include <asm/uaccess.h>
++#include <linux/errno.h>
+ #endif
+ 
+ #include "msm_watchdog.h"
+@@ -188,6 +191,35 @@
+ 
+ #endif
+ 
++#ifdef CONFIG_MACH_APQ8064_DB600C
++
++#define MAC_ADDR_0 "/data/macaddr0"
++#define MAC_ADDR_SIZE (6)
++#define MAC_STRING_SIZE (18)
++#define MAC_ADDRESS_STR "%02x:%02x:%02x:%02x:%02x:%02x"
++
++struct db600c_board_info board_info;
++EXPORT_SYMBOL(board_info);
++
++void get_mac_addr(struct memory_accessor *mem_acc, void *context)
++{
++   off_t offset = (off_t)context;
++
++   /* Read MAC addr from EEPROM */
++   if (mem_acc->read(mem_acc, (char *) &board_info, offset, sizeof(board_info)) == sizeof(board_info)) {
++       pr_info("Read Ethernet MAC addr from EEPROM: %pM\n", board_info.eth_mac);
++       pr_info("Read Wifi MAC addr from EEPROM: %pM\n", board_info.wifi_mac);
++   }
++
++   printk("Device ID: %s\nETH_MAC Address: %x:%x:%x:%x:%x:%x\n", board_info.device_id,
++       board_info.eth_mac[0], board_info.eth_mac[1], board_info.eth_mac[2],
++       board_info.eth_mac[3], board_info.eth_mac[4], board_info.eth_mac[5]);
++   printk("WIFI_MAC_Address: %x:%x:%x:%x:%x:%x\n", board_info.wifi_mac[0], board_info.wifi_mac[1], board_info.wifi_mac[2],
++       board_info.wifi_mac[3], board_info.wifi_mac[4], board_info.wifi_mac[5]);
++}
++
++#endif
++
+ #ifdef CONFIG_KERNEL_MSM_CONTIG_MEM_REGION
+ static unsigned msm_contig_mem_size = MSM_CONTIG_MEM_SIZE;
+ static int __init msm_contig_mem_size_setup(char *p)
+@@ -1313,7 +1345,8 @@ static struct i2c_board_info lsm6dx0_accel_gyro_info_info[] __initdata = {
+ struct at24_platform_data at24c128c_eeprom_platform_data = {
+     .byte_len =  AT24_EEPROM_BYTE_LEN,
+     .page_size = AT24_EEPROM_PAGE_SIZE,
+-    .flags = AT24_FLAG_ADDR16
++    .flags = AT24_FLAG_ADDR16,
++	.setup = get_mac_addr,
+ };
+ 
+ static struct i2c_board_info at24c128c_eeprom_info[] __initdata = {
+@@ -3825,6 +3858,7 @@ static void __init apq8064_cdp_init(void)
+ 	    printk("gpio %d exported for user led\n", DB600C_USER_LED_2);
+ 	}
+ 
++#if 0
+ 	/* Enable wifi LED */
+ 	ret = gpio_request(PM8921_MPP_PM_TO_SYS(7), "wifi-led");
+ 	if (ret < 0) {
+@@ -3837,6 +3871,7 @@ static void __init apq8064_cdp_init(void)
+ 	    gpio_set_value(PM8921_MPP_PM_TO_SYS(7), 0);
+ 	    printk("pmic mpp %d exported for wifi LED\n", PM8921_MPP_PM_TO_SYS(7));
+ 	}
++#endif
+ 
+ 	/* Enable bt LED */
+ 	ret = gpio_request(PM8921_MPP_PM_TO_SYS(8), "bt-led");
+diff --git a/arch/arm/mach-msm/include/mach/board.h b/arch/arm/mach-msm/include/mach/board.h
+index c7c2d41..a151d0a 100644
+--- a/arch/arm/mach-msm/include/mach/board.h
++++ b/arch/arm/mach-msm/include/mach/board.h
+@@ -254,6 +254,24 @@ struct msm_eeprom_info {
+ 	int eeprom_i2c_slave_addr;
+ };
+ 
++#ifdef CONFIG_MACH_APQ8064_DB600C
++
++#define ID_LEN        10
++#define ETH_LEN       6
++#define REV_LEN       8
++#define WIFI_MAC_LEN  6
++
++struct db600c_board_info {
++   char header[4];
++   char device_id[ID_LEN];
++   char eth_mac[ETH_LEN];
++   char wifi_mac[WIFI_MAC_LEN];
++   char rev[REV_LEN];
++   char footer[4];
++};
++
++#endif
++
+ struct msm_camera_sensor_info {
+ 	const char *sensor_name;
+ 	int sensor_reset_enable;
+diff --git a/drivers/net/ethernet/atheros/atl1c/atl1c_main.c b/drivers/net/ethernet/atheros/atl1c/atl1c_main.c
+index 1ef0c927..75d1aad 100644
+--- a/drivers/net/ethernet/atheros/atl1c/atl1c_main.c
++++ b/drivers/net/ethernet/atheros/atl1c/atl1c_main.c
+@@ -20,6 +20,9 @@
+  */
+ 
+ #include "atl1c.h"
++#ifdef CONFIG_MACH_APQ8064_DB600C
++#include <mach/board.h>
++#endif
+ 
+ #define ATL1C_DRV_VERSION "1.0.1.0-NAPI"
+ char atl1c_driver_name[] = "atl1c";
+@@ -33,6 +36,10 @@ char atl1c_driver_version[] = ATL1C_DRV_VERSION;
+ #define L2CB_V10			0xc0
+ #define L2CB_V11			0xc1
+ 
++#ifdef CONFIG_MACH_APQ8064_DB600C
++extern struct db600c_board_info board_info;
++#endif
++
+ /*
+  * atl1c_pci_tbl - PCI Device ID Table
+  *
+@@ -2742,10 +2749,37 @@ static int __devinit atl1c_probe(struct pci_dev *pdev,
+ 		err = -EIO;
+ 		goto err_reset;
+ 	}
++
++#ifdef CONFIG_MACH_APQ8064_DB600C
++
++   printk("Setting Ethernet MAC Address: %x:%x:%x:%x:%x:%x\n", board_info.eth_mac[0], board_info.eth_mac[1], board_info.eth_mac[2],
++       board_info.eth_mac[3], board_info.eth_mac[4], board_info.eth_mac[5]);
++
++   if (!((0x00 == board_info.eth_mac[0] && 0x00 == board_info.eth_mac[1]
++       && 0x00 == board_info.eth_mac[2] && 0x00 == board_info.eth_mac[3]
++       && 0x00 == board_info.eth_mac[4] && 0x00 == board_info.eth_mac[5])
++       || (0xff == board_info.eth_mac[0] && 0xff == board_info.eth_mac[1]
++       && 0xff == board_info.eth_mac[2] && 0xff == board_info.eth_mac[3]
++       && 0xff == board_info.eth_mac[4] && 0xff == board_info.eth_mac[5]))) {
++       memcpy(adapter->hw.mac_addr, board_info.eth_mac, sizeof(adapter->hw.mac_addr));
++       memcpy(adapter->hw.perm_mac_addr, board_info.eth_mac, sizeof(adapter->hw.perm_mac_addr));
++   } else {
++       /* got a random MAC address, set NET_ADDR_RANDOM to netdev */
++       netdev->addr_assign_type |= NET_ADDR_RANDOM;
++       random_ether_addr(adapter->hw.perm_mac_addr);
++       memcpy(adapter->hw.mac_addr, adapter->hw.perm_mac_addr, sizeof(adapter->hw.perm_mac_addr));
++   }
++
++   printk("Set Ethernet MAC Address is : %x:%x:%x:%x:%x:%x\n",
++       adapter->hw.perm_mac_addr[0], adapter->hw.perm_mac_addr[1], adapter->hw.perm_mac_addr[2],
++       adapter->hw.perm_mac_addr[3], adapter->hw.perm_mac_addr[4], adapter->hw.perm_mac_addr[5]);
++
++#else
+ 	if (atl1c_read_mac_addr(&adapter->hw)) {
+ 		/* got a random MAC address, set NET_ADDR_RANDOM to netdev */
+ 		netdev->addr_assign_type |= NET_ADDR_RANDOM;
+ 	}
++#endif
+ 	memcpy(netdev->dev_addr, adapter->hw.mac_addr, netdev->addr_len);
+ 	memcpy(netdev->perm_addr, adapter->hw.mac_addr, netdev->addr_len);
+ 	if (netif_msg_probe(adapter))
+-- 
+1.9.1
+

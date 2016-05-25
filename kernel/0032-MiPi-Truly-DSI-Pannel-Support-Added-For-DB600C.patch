@@ -1,0 +1,517 @@
+From 61dda11d87b2acfa36f68784cb4d5b93aca17c6c Mon Sep 17 00:00:00 2001
+From: Parth Pancholi <parth.pancholi@einfochips.com>
+Date: Tue, 12 Apr 2016 13:01:09 +0530
+Subject: [PATCH 32/40] MiPi Truly DSI Pannel Support Added For DB600C
+
+mipi_truly_video_wvga_pt_db600c.c file created. It has pannel
+specific parameters
+
+Signed-off-by: eInfochips Team <ei-qc8064@einfochips.com>
+---
+ arch/arm/configs/msm8960_defconfig                 |   1 +
+ arch/arm/mach-msm/board-8064-display.c             |  55 ++++++-
+ arch/arm/mach-msm/board-8064-regulator.c           |  10 +-
+ drivers/video/msm/Makefile                         |   2 +
+ drivers/video/msm/mipi_truly.c                     | 168 +++++++++++++++++++++
+ .../video/msm/mipi_truly_video_wvga_pt_db600c.c    | 102 +++++++++++++
+ 6 files changed, 333 insertions(+), 5 deletions(-)
+ create mode 100644 drivers/video/msm/mipi_truly_video_wvga_pt_db600c.c
+
+diff --git a/arch/arm/configs/msm8960_defconfig b/arch/arm/configs/msm8960_defconfig
+index 72d72c3..940bd4a 100644
+--- a/arch/arm/configs/msm8960_defconfig
++++ b/arch/arm/configs/msm8960_defconfig
+@@ -434,6 +434,7 @@ CONFIG_FB_MSM_OVERLAY0_WRITEBACK=y
+ CONFIG_FB_MSM_OVERLAY1_WRITEBACK=y
+ CONFIG_FB_MSM_WRITEBACK_MSM_PANEL=y
+ CONFIG_FB_MSM_LVDS_MIPI_PANEL_DETECT=y
++CONFIG_FB_MSM_MIPI_PANEL_DETECT=y
+ CONFIG_FB_MSM_HDMI_MSM_PANEL=y
+ CONFIG_BACKLIGHT_LCD_SUPPORT=y
+ CONFIG_BACKLIGHT_CLASS_DEVICE=y
+diff --git a/arch/arm/mach-msm/board-8064-display.c b/arch/arm/mach-msm/board-8064-display.c
+index da11941..af0fbca 100644
+--- a/arch/arm/mach-msm/board-8064-display.c
++++ b/arch/arm/mach-msm/board-8064-display.c
+@@ -61,6 +61,7 @@ static struct resource msm_fb_resources[] = {
+ #define LVDS_FRC_PANEL_NAME "lvds_frc_fhd"
+ #define MIPI_VIDEO_TOSHIBA_WSVGA_PANEL_NAME "mipi_video_toshiba_wsvga"
+ #define MIPI_VIDEO_CHIMEI_WXGA_PANEL_NAME "mipi_video_chimei_wxga"
++#define MIPI_VIDEO_TRULY_WVGA_PANEL_NAME "mipi_video_truly_wvga_db600c"
+ #define HDMI_PANEL_NAME "hdmi_msm"
+ #define MHL_PANEL_NAME "hdmi_msm,mhl_8334"
+ #define TVOUT_PANEL_NAME "tvout_msm"
+@@ -110,11 +111,20 @@ static int msm_fb_detect_panel(const char *name)
+ 			strnlen(MIPI_VIDEO_TOSHIBA_WSVGA_PANEL_NAME,
+ 				PANEL_NAME_MAX_LEN)))
+ 			return 0;
+-	} else if (machine_is_apq8064_cdp()) {
++	} else if (machine_is_apq8064_cdp() || machine_is_apq8064_db600c()) {
++#ifdef CONFIG_FB_MSM_MIPI_PANEL_DETECT
++#ifdef CONFIG_MACH_APQ8064_DB600C
++		if (!strncmp(name, MIPI_VIDEO_TRULY_WVGA_PANEL_NAME,
++			strnlen(MIPI_VIDEO_TRULY_WVGA_PANEL_NAME,
++			PANEL_NAME_MAX_LEN)))
++			return 0;
++#endif
++#else
+ 		if (!strncmp(name, LVDS_CHIMEI_PANEL_NAME,
+ 			strnlen(LVDS_CHIMEI_PANEL_NAME,
+ 				PANEL_NAME_MAX_LEN)))
+ 			return 0;
++#endif
+ 	} else if (machine_is_mpq8064_dtv()) {
+ 		if (!strncmp(name, LVDS_FRC_PANEL_NAME,
+ 			strnlen(LVDS_FRC_PANEL_NAME,
+@@ -349,6 +359,48 @@ static struct platform_device wfd_device = {
+ #define HDMI_HPD_GPIO		72
+ 
+ static bool dsi_power_on;
++#ifdef CONFIG_MACH_APQ8064_DB600C
++static int mipi_dsi_panel_power(int on)
++{
++	static int gpio26, mpp1;
++	int rc;
++
++	if (!dsi_power_on) {
++
++		/* DB600C Backlight GPIO */
++		gpio26 = PM8921_GPIO_PM_TO_SYS(26);
++		rc = gpio_request(gpio26, "pwm_backlight");
++		if (rc) {
++			printk("request gpio26 %d failed, rc=%d\n", gpio26, rc);
++			return -ENODEV;
++		}
++		gpio_direction_output(gpio26, 1);
++
++		/* DB600C reset GPIO */
++		mpp1 = PM8821_MPP_PM_TO_SYS(1);
++		rc = gpio_request(mpp1, "disp_rst_n");
++		if (rc) {
++		    printk("request mpp %d failed, rc=%d\n", mpp1, rc);
++		    return -ENODEV;
++		}
++		gpio_direction_output(mpp1, 1);
++
++		dsi_power_on = true;
++	}
++
++	if (on) {
++		printk("DB600C DSI Panel On\n");
++		gpio_set_value(gpio26, 1);
++		gpio_set_value(mpp1, 1);
++	} else {
++		printk("DB600C DSI Panel Off\n");
++		gpio_set_value(gpio26, 0);
++		gpio_set_value(mpp1, 0);
++	}
++
++	return 0;
++}
++#else
+ static int mipi_dsi_panel_power(int on)
+ {
+ 	static struct regulator *reg_lvs7, *reg_l2, *reg_l11, *reg_ext_3p3v;
+@@ -514,6 +566,7 @@ static int mipi_dsi_panel_power(int on)
+ 
+ 	return 0;
+ }
++#endif
+ 
+ static struct mipi_dsi_platform_data mipi_dsi_pdata = {
+ 	.dsi_power_save = mipi_dsi_panel_power,
+diff --git a/arch/arm/mach-msm/board-8064-regulator.c b/arch/arm/mach-msm/board-8064-regulator.c
+index 13069fc..7668c96 100644
+--- a/arch/arm/mach-msm/board-8064-regulator.c
++++ b/arch/arm/mach-msm/board-8064-regulator.c
+@@ -33,7 +33,7 @@ VREG_CONSUMERS(L2) = {
+ 	REGULATOR_SUPPLY("mipi_csi_vdd",	"msm_csid.2"),
+ 	REGULATOR_SUPPLY("lvds_pll_vdda",	"lvds.0"),
+ 	REGULATOR_SUPPLY("dsi1_pll_vdda",	"mipi_dsi.1"),
+-	REGULATOR_SUPPLY("dsi_pll_vdda",	"mdp.0"),
++	/* REGULATOR_SUPPLY("dsi_pll_vdda",	"mdp.0"), */
+ };
+ VREG_CONSUMERS(L3) = {
+ 	REGULATOR_SUPPLY("8921_l3",		NULL),
+@@ -86,6 +86,7 @@ VREG_CONSUMERS(L12) = {
+ 	REGULATOR_SUPPLY("cam_vdig",		"4-006c"),
+ 	REGULATOR_SUPPLY("cam_vdig",		"4-0034"),
+ 	REGULATOR_SUPPLY("cam_vdig",		"4-0020"),
++	REGULATOR_SUPPLY("dsi_pll_vdda",        "mdp.0"),
+ 	REGULATOR_SUPPLY("8921_l12",		NULL),
+ };
+ VREG_CONSUMERS(L13) = {
+@@ -219,6 +220,7 @@ VREG_CONSUMERS(LVS5) = {
+ 	REGULATOR_SUPPLY("cam_vio",		"4-006c"),
+ 	REGULATOR_SUPPLY("cam_vio",		"4-0034"),
+ 	REGULATOR_SUPPLY("cam_vio",		"4-0020"),
++	REGULATOR_SUPPLY("ext_clk",     "mipi_dsi.1"),
+ };
+ VREG_CONSUMERS(LVS6) = {
+ 	REGULATOR_SUPPLY("8921_lvs6",		NULL),
+@@ -655,7 +657,7 @@ static struct rpm_regulator_init_data
+ apq8064_rpm_regulator_init_data[] __devinitdata = {
+ 	/*	ID a_on pd ss min_uV   max_uV  supply sys_uA  freq  fm  ss_fm */
+ 	RPM_SMPS(S1, 1, 1, 0, 1225000, 1225000, NULL, 100000, 3p20, NONE, NONE),
+-	RPM_SMPS(S2, 1, 1, 0, 1300000, 1300000, NULL, 100000, 1p60, NONE, NONE),
++	RPM_SMPS(S2, 0, 1, 0, 1300000, 1300000, NULL,      0, 1p60, NONE, NONE),
+ 	RPM_SMPS(S3, 0, 1, 1,  500000, 1150000, NULL, 100000, 4p80, NONE, NONE),
+ 	RPM_SMPS(S4, 1, 1, 0, 1800000, 1800000, NULL, 100000, 1p60, AUTO, AUTO),
+ 	RPM_SMPS(S7, 0, 0, 0, 1300000, 1300000, NULL, 100000, 3p20, NONE, NONE),
+@@ -663,7 +665,7 @@ apq8064_rpm_regulator_init_data[] __devinitdata = {
+ 
+ 	/*	ID a_on pd ss min_uV   max_uV   supply    sys_uA init_ip */
+ 	RPM_LDO(L1,  1, 1, 0, 1100000, 1100000, "8921_s4",     0,  1000),
+-	RPM_LDO(L2,  0, 1, 0, 1200000, 1200000, "8921_s4",     0,     0),
++	RPM_LDO(L2,  1, 1, 0, 1200000, 1200000, "8921_s4",     0,     0),
+ 	RPM_LDO(L3,  0, 1, 0, 3075000, 3300000, NULL,          0,     0),
+ 	RPM_LDO(L4,  1, 1, 0, 1800000, 1800000, NULL,          0, 10000),
+ 	RPM_LDO(L5,  0, 1, 0, 2950000, 2950000, NULL,          0,     0),
+@@ -676,7 +678,7 @@ apq8064_rpm_regulator_init_data[] __devinitdata = {
+ 	RPM_LDO(L12, 0, 1, 0, 1200000, 1200000, "8921_s4",     0,     0),
+ 	RPM_LDO(L13, 0, 0, 0, 2220000, 2220000, NULL,          0,     0),
+ 	RPM_LDO(L14, 0, 1, 0, 1800000, 1800000, NULL,          0,     0),
+-	RPM_LDO(L15, 1, 1, 0, 1800000, 1800000, NULL,          0, 10000),
++	RPM_LDO(L15, 1, 1, 0, 1800000, 2950000, NULL,          0, 10000),
+ 	RPM_LDO(L16, 0, 1, 0, 2800000, 2800000, NULL,          0,     0),
+ 	RPM_LDO(L17, 0, 1, 0, 2000000, 2000000, NULL,          0,     0),
+ 	RPM_LDO(L18, 0, 1, 0, 1300000, 1800000, "8921_s4",     0,     0),
+diff --git a/drivers/video/msm/Makefile b/drivers/video/msm/Makefile
+index ac9d590..632874c 100644
+--- a/drivers/video/msm/Makefile
++++ b/drivers/video/msm/Makefile
+@@ -130,6 +130,7 @@ obj-y += mipi_NT35590_cmd_720p_pt.o mipi_NT35590_video_720p_pt.o
+ obj-y += mipi_chimei_wxga_pt.o
+ obj-y += mipi_chimei_wuxga.o
+ obj-y += mipi_truly_video_wvga_pt.o
++obj-y += mipi_truly_video_wvga_pt_db600c.o
+ else
+ obj-$(CONFIG_FB_MSM_MIPI_TOSHIBA_VIDEO_WVGA_PT) += mipi_toshiba_video_wvga_pt.o
+ obj-$(CONFIG_FB_MSM_MIPI_TOSHIBA_VIDEO_WSVGA_PT) += mipi_toshiba_video_wsvga_pt.o
+@@ -142,6 +143,7 @@ obj-$(CONFIG_FB_MSM_MIPI_RENESAS_VIDEO_FWVGA_PT) += mipi_renesas_video_fwvga_pt.
+ obj-$(CONFIG_FB_MSM_MIPI_RENESAS_CMD_FWVGA_PT) += mipi_renesas_cmd_fwvga_pt.o
+ obj-$(CONFIG_FB_MSM_MIPI_RENESAS_VIDEO_FWVGA_PT) += mipi_renesas_video_fwvga_pt.o
+ obj-$(CONFIG_FB_MSM_MIPI_TRULY_VIDEO_WVGA_PT) += mipi_truly_video_wvga_pt.o
++obj-$(CONFIG_FB_MSM_MIPI_TRULY_VIDEO_WVGA_PT) += mipi_truly_video_wvga_pt_db600c.o
+ obj-$(CONFIG_FB_MSM_MIPI_NT35510_CMD_WVGA_PT) += mipi_NT35510_cmd_wvga_pt.o
+ obj-$(CONFIG_FB_MSM_MIPI_NT35510_VIDEO_WVGA_PT) += mipi_NT35510_video_wvga_pt.o
+ obj-$(CONFIG_FB_MSM_MIPI_NT35516_CMD_QHD_PT) += mipi_truly_tft540960_1_e_cmd_qhd_pt.o
+diff --git a/drivers/video/msm/mipi_truly.c b/drivers/video/msm/mipi_truly.c
+index 6fcab32..a084df7 100644
+--- a/drivers/video/msm/mipi_truly.c
++++ b/drivers/video/msm/mipi_truly.c
+@@ -14,6 +14,7 @@
+ #include "msm_fb.h"
+ #include "mipi_dsi.h"
+ #include "mipi_truly.h"
++#include <linux/pwm.h>
+ 
+ static struct msm_panel_common_pdata *mipi_truly_pdata;
+ static struct dsi_buf truly_tx_buf;
+@@ -24,7 +25,132 @@ static struct dsi_buf truly_rx_buf;
+ #define TRULY_DISPLAY_ON_DELAY	150
+ #define GPIO_TRULY_LCD_RESET	129
+ 
++#ifdef CONFIG_MACH_APQ8064_DB600C
++static struct pwm_device *bl_lpm;
++#else
+ static int prev_bl = 17;
++#endif
++
++#ifdef CONFIG_MACH_APQ8064_DB600C
++
++static char off_cmd_payload1[2] = {0x10, 0x00};
++static char off_cmd_payload2[2] = {0x53, 0x00};
++static char off_cmd_payload3[2] = {0xc2, 0x00};
++static char off_cmd_payload4[2] = {0xcf, 0x40};
++static char off_cmd_payload5[3] = {0xde, 0x84, 0x00};
++static char off_cmd_payload6[2] = {0xcb, 0x22};
++static char off_cmd_payload7[2] = {0xc3, 0x00};
++
++static struct dsi_cmd_desc truly_display_off_cmds[] = {
++    {DTYPE_DCS_WRITE, 1, 0, 0, 32, sizeof(off_cmd_payload1), off_cmd_payload1},
++    {DTYPE_DCS_LWRITE, 1, 0, 0, 20, sizeof(off_cmd_payload2), off_cmd_payload2},
++    {DTYPE_DCS_LWRITE, 1, 0, 0, 20, sizeof(off_cmd_payload3), off_cmd_payload3},
++    {DTYPE_DCS_LWRITE, 1, 0, 0, 0, sizeof(off_cmd_payload4), off_cmd_payload4},
++    {DTYPE_DCS_LWRITE, 1, 0, 0, 20, sizeof(off_cmd_payload5), off_cmd_payload5},
++    {DTYPE_DCS_LWRITE, 1, 0, 0, 0, sizeof(off_cmd_payload6), off_cmd_payload6},
++    {DTYPE_DCS_LWRITE, 1, 0, 0, 0, sizeof(off_cmd_payload7), off_cmd_payload7},
++};
++
++static char write_memory1[2] = {0xff, 0x01};
++static char write_memory2[2] = {0x53, 0x00};
++static char write_memory3[5] = {0xc6, 0x63, 0x00, 0x81, 0x31};
++static char write_memory4[5] = {0xcb, 0xe7, 0x80, 0x73, 0x33};
++static char write_memory5[2] = {0xec, 0xd2};
++static char write_memory6[3] = {0xb3, 0x04, 0x9f};
++static char write_memory7[4] = {0xb2, 0x16, 0x26, 0x10};
++static char write_memory8[2] = {0xb4, 0x00};
++static char write_memory9[2] = {0xc1, 0x04};
++static char write_memory10[4] = {0xc2, 0xbe, 0x00, 0x58};
++static char write_memory11[9] = {0xc3, 0x01, 0x22, 0x11, 0x21, 0x0e, 0x80, 0x80, 0x24};
++static char write_memory12[8] = {0xb6, 0x09, 0x16, 0x42, 0x01, 0x13, 0x00, 0x00};
++static char write_memory13[4] = {0xb7, 0x24, 0x26, 0x43};
++static char write_memory14[6] = {0xb8, 0x16, 0x08, 0x25, 0x44, 0x08};
++static char write_memory15[9] = {0xb9, 0x06, 0x08, 0x07, 0x09, 0x00, 0x00, 0x00, 0x00};
++static char write_memory16[9] = {0xba, 0x0e, 0x10, 0x0a, 0x0C, 0x16, 0x05, 0x00, 0x00};
++static char write_memory17[9] = {0xbb, 0xa1, 0xa1, 0xa1, 0xa1, 0x00, 0x00, 0x00, 0x00};
++static char write_memory18[9] = {0xbc, 0x0f, 0x11, 0x0B, 0x0D, 0x16, 0x05, 0x00, 0x00};
++static char write_memory19[9] = {0xbd, 0xa1, 0xa1, 0xa1, 0xa1, 0x00, 0x00, 0x00, 0x00};
++static char write_memory20[4] = {0xe6, 0xff, 0xff, 0x0f};
++static char write_memory21[2] = {0xc7, 0x3f};
++static char write_memory22[7] = {0xb5, 0x47, 0x00, 0x00, 0x08, 0x00, 0x01};
++static char write_memory23[8] = {0xc4, 0xdf, 0xc2, 0x0c, 0x0c, 0x63, 0xe3, 0x99};
++static char write_memory24[7] = {0xd0, 0x0a, 0x00, 0x06, 0x09, 0x10, 0x20};
++static char write_memory25[6] = {0xd1, 0x1d, 0x32, 0x1b, 0x00, 0x00};
++static char write_memory26[7] = {0xd2, 0x0a, 0x00, 0x06, 0x09, 0x10, 0x20};
++static char write_memory27[6] = {0xd3, 0x1d, 0x32, 0x1b, 0x00, 0x00};
++static char write_memory28[7] = {0xd4, 0x0A, 0x00, 0x06, 0x09, 0x10, 0x20};
++static char write_memory29[6] = {0xd5, 0x1d, 0x32, 0x1b, 0x00, 0x00};
++static char write_memory30[7] = {0xd6, 0x0a, 0x00, 0x06, 0x09, 0x10, 0x20};
++static char write_memory31[6] = {0xd7, 0x1d, 0x32, 0x1b, 0x00, 0x00};
++static char write_memory32[7] = {0xd8, 0x0a, 0x00, 0x06, 0x09, 0x10, 0x20};
++static char write_memory33[6] = {0xd9, 0x1d, 0x32, 0x1b, 0x00, 0x00};
++static char write_memory34[7] = {0xda, 0x0a, 0x00, 0x06, 0x09, 0x10, 0x20};
++static char write_memory35[6] = {0xdb, 0x1d, 0x32, 0x1b, 0x00, 0x00};
++static char write_memory36[3] = {0xcc, 0x10, 0x00};
++static char write_memory37[4] = {0xce, 0x4e, 0x55, 0xa5};
++static char write_memory38[4] = {0xe0, 0x01, 0x02, 0x02};
++static char write_memory39[5] = {0xf6, 0x00, 0x00, 0x00, 0x00};
++static char write_memory40[5] = {0xf7, 0x00, 0x00, 0x00, 0x00};
++static char write_memory41[3] = {0xe1, 0x90, 0x00};
++static char write_memory42[7] = {0xde, 0x95, 0xcf, 0xe2, 0xce, 0x11, 0x15};
++static char write_memory43[2] = {0xcf, 0x46};
++static char write_memory44[2] = {0xc5, 0x66};
++static char write_memory45[3] = {0xed, 0x00, 0x20};
++static char write_memory46[2] = {0x53, 0x2c};
++static char write_memory47[2] = {0x11, 0x00};
++static char write_memory48[2] = {0x29, 0x00};
++
++static struct dsi_cmd_desc truly_display_on_cmds[] = {
++	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(write_memory1), write_memory1},
++	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(write_memory2), write_memory2},
++	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(write_memory3), write_memory3},
++	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(write_memory4), write_memory4},
++	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(write_memory5), write_memory5},
++	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(write_memory6), write_memory6},
++	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(write_memory7), write_memory7},
++	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(write_memory8), write_memory8},
++	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(write_memory9), write_memory9},
++	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(write_memory10), write_memory10},
++	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(write_memory11), write_memory11},
++	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(write_memory12), write_memory12},
++	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(write_memory13), write_memory13},
++	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(write_memory14), write_memory14},
++	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(write_memory15), write_memory15},
++	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(write_memory16), write_memory16},
++	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(write_memory17), write_memory17},
++	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(write_memory18), write_memory18},
++	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(write_memory19), write_memory19},
++	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(write_memory20), write_memory20},
++	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(write_memory21), write_memory21},
++	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(write_memory22), write_memory22},
++	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(write_memory23), write_memory23},
++	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(write_memory24), write_memory24},
++	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(write_memory25), write_memory25},
++	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(write_memory26), write_memory26},
++	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(write_memory27), write_memory27},
++	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(write_memory28), write_memory28},
++	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(write_memory29), write_memory29},
++	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(write_memory30), write_memory30},
++	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(write_memory31), write_memory31},
++	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(write_memory32), write_memory32},
++	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(write_memory33), write_memory33},
++	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(write_memory34), write_memory34},
++	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(write_memory35), write_memory35},
++	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(write_memory36), write_memory36},
++	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(write_memory37), write_memory37},
++	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(write_memory38), write_memory38},
++	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(write_memory39), write_memory39},
++	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(write_memory40), write_memory40},
++	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(write_memory41), write_memory41},
++	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(write_memory42), write_memory42},
++	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(write_memory43), write_memory43},
++	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(write_memory44), write_memory44},
++	{DTYPE_GEN_LWRITE, 1, 0, 0, 0, sizeof(write_memory45), write_memory45},
++	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, sizeof(write_memory46), write_memory46},
++	{DTYPE_DCS_WRITE, 1, 0, 0, 20, sizeof(write_memory47), write_memory47},
++	{DTYPE_DCS_WRITE, 1, 0, 0, 20, sizeof(write_memory48), write_memory48},
++};
++#else
+ 
+ static char extend_cmd_enable[4] = {0xB9, 0xFF, 0x83, 0x69};
+ static char display_setting[16] = {
+@@ -103,6 +229,7 @@ static struct dsi_cmd_desc truly_display_on_cmds[] = {
+ 	{DTYPE_DCS_WRITE, 1, 0, 0, TRULY_DISPLAY_ON_DELAY,
+ 			sizeof(display_on), display_on},
+ };
++#endif
+ 
+ static int mipi_truly_lcd_on(struct platform_device *pdev)
+ {
+@@ -140,6 +267,46 @@ static int mipi_truly_lcd_off(struct platform_device *pdev)
+ }
+ 
+ #define BL_LEVEL	17
++#ifdef CONFIG_MACH_APQ8064_DB600C
++
++#define PWM_FREQ_HZ 512
++#define PWM_PERIOD_USEC (USEC_PER_SEC / PWM_FREQ_HZ)
++#define PWM_LEVEL 255
++#define PWM_DUTY_LEVEL \
++    (PWM_PERIOD_USEC / PWM_LEVEL)
++
++#define gpio_LCD_BL_EN PM8921_GPIO_PM_TO_SYS(26)
++
++static void mipi_truly_set_backlight(struct msm_fb_data_type *mfd)
++{
++
++    int ret;
++    int actual_bl_level;
++
++    pr_debug("%s: back light level %d\n", __func__, mfd->bl_level);
++	actual_bl_level = mfd->panel_info.bl_max - mfd->bl_level;
++	if (bl_lpm) {
++		ret = pwm_config(bl_lpm,
++					PWM_DUTY_LEVEL * actual_bl_level,
++					PWM_PERIOD_USEC);
++
++		if (ret) {
++			pr_err("pwm_config on lpm failed %d\n", ret);
++			return;
++		}
++		if (actual_bl_level) {
++			ret = pwm_enable(bl_lpm);
++			if (ret)
++			    pr_err("pwm enable/disable on lpm failed"
++					"for bl %d\n", actual_bl_level);
++			}
++		else {
++			pwm_disable(bl_lpm);
++		}
++    }
++}
++
++#else
+ static void mipi_truly_set_backlight(struct msm_fb_data_type *mfd)
+ {
+ 	int step = 0, i = 0;
+@@ -181,6 +348,7 @@ static void mipi_truly_set_backlight(struct msm_fb_data_type *mfd)
+ 
+ 	return;
+ }
++#endif
+ 
+ static int __devinit mipi_truly_lcd_probe(struct platform_device *pdev)
+ {
+diff --git a/drivers/video/msm/mipi_truly_video_wvga_pt_db600c.c b/drivers/video/msm/mipi_truly_video_wvga_pt_db600c.c
+new file mode 100644
+index 0000000..8fee45c
+--- /dev/null
++++ b/drivers/video/msm/mipi_truly_video_wvga_pt_db600c.c
+@@ -0,0 +1,102 @@
++/* Copyright (c) 2011, The Linux Foundation. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 and
++ * only version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ */
++
++#include "msm_fb.h"
++#include "mipi_dsi.h"
++#include "mipi_truly.h"
++
++static struct msm_panel_info pinfo;
++
++static struct mipi_dsi_phy_ctrl dsi_video_mode_phy_db = {
++	/* regulator */
++	{0x03, 0x0a, 0x04, 0x00, 0x20},
++	/* timing   */
++	{0x76, 0x18, 0x10, 0x00, 0x3C, 0x40, 0x14, 0x1C, 0x12, 0x03, 0x04},
++	/* phy ctrl */
++	{0x5f, 0x00, 0x00, 0x10},
++	/* strength */
++	{0xff, 0x00, 0x06, 0x00},
++	/* pll control */
++	{0x00, 0x46, 0x30, 0xc4, 0x4a, 0x01, 0x19,0x62,0x71, 0x0f, 0x01,
++    0x00, 0x14, 0x03, 0x00, 0x02, 0x00, 0x20, 0x00, 0x01},
++};
++
++static int __init mipi_video_truly_wvga_pt_init(void)
++{
++	int ret;
++
++	if (msm_fb_detect_client("mipi_video_truly_wvga_db600c"))
++		return 0;
++
++	pinfo.xres = 720;
++	pinfo.yres = 1280;
++	pinfo.type = MIPI_VIDEO_PANEL;
++	pinfo.pdest = DISPLAY_1;
++	pinfo.wait_cycle = 0;
++	pinfo.bpp = 24;
++
++	pinfo.lcdc.h_back_porch = 24;
++	pinfo.lcdc.h_front_porch = 80;
++	pinfo.lcdc.h_pulse_width = 14;
++	pinfo.lcdc.v_back_porch = 14;
++	pinfo.lcdc.v_front_porch = 25;
++	pinfo.lcdc.v_pulse_width = 2;
++
++	pinfo.lcdc.border_clr = 0;
++	pinfo.lcdc.underflow_clr = 0xff;
++	pinfo.lcdc.hsync_skew = 0;
++	pinfo.clk_rate = 399000000;
++	pinfo.bl_max = 15;
++	pinfo.bl_min = 1;
++	pinfo.fb_num = 2;
++
++	pinfo.mipi.mode = DSI_VIDEO_MODE;
++	pinfo.mipi.pulse_mode_hsa_he = TRUE;
++	pinfo.mipi.hfp_power_stop = FALSE;
++	pinfo.mipi.hbp_power_stop = FALSE;
++	pinfo.mipi.hsa_power_stop = FALSE;
++	pinfo.mipi.eof_bllp_power_stop = TRUE;
++	pinfo.mipi.bllp_power_stop = FALSE;
++
++	pinfo.mipi.traffic_mode = DSI_BURST_MODE;
++	pinfo.mipi.dst_format =  DSI_VIDEO_DST_FORMAT_RGB888;
++	pinfo.mipi.vc = 0;
++	pinfo.mipi.rgb_swap = DSI_RGB_SWAP_RGB;
++	pinfo.mipi.data_lane0 = TRUE;
++	pinfo.mipi.data_lane1 = TRUE;
++	pinfo.mipi.data_lane2 = TRUE;
++	pinfo.mipi.data_lane3 = TRUE;
++
++	pinfo.mipi.t_clk_post = 0x20;
++	pinfo.mipi.t_clk_pre = 0x2f;
++
++	pinfo.mipi.stream = 0;
++	pinfo.mipi.mdp_trigger = DSI_CMD_TRIGGER_NONE;
++	pinfo.mipi.dma_trigger = DSI_CMD_TRIGGER_SW;
++	pinfo.mipi.frame_rate = 60;
++
++	pinfo.mipi.dsi_phy_db = &dsi_video_mode_phy_db;
++	pinfo.mipi.tx_eot_append = 0x01;
++
++	pinfo.mipi.esc_byte_ratio = 4;
++
++	ret = mipi_truly_device_register(&pinfo, MIPI_DSI_PRIM,
++						MIPI_DSI_PANEL_WXGA);
++
++	if (ret)
++		pr_err("%s: failed to register device!\n", __func__);
++
++	return ret;
++}
++
++module_init(mipi_video_truly_wvga_pt_init);
+-- 
+1.9.1
+

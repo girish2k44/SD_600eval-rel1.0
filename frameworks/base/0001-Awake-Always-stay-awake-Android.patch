@@ -1,0 +1,32 @@
+From 7b6f2406b47851d73b4edbea16fc64a68ff1b763 Mon Sep 17 00:00:00 2001
+From: Girish Sharma <girish.sharma@einfochips.com>
+Date: Mon, 18 Jan 2016 21:11:37 +0530
+Subject: [PATCH] Awake: Always stay awake Android
+
+These changes are workaround to a issue which occurs in Android 05.01.01
+When Android board is in suspended mode suddenly it shutdown the supply
+and board reboots into download mode
+
+Change-Id: I3de247e6265da0241539ca30110af0914a542ae8
+Signed-off-by: eInfochips Team <ei-qc8064@einfochips.com>
+---
+ packages/SettingsProvider/res/values/defaults.xml | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/packages/SettingsProvider/res/values/defaults.xml b/packages/SettingsProvider/res/values/defaults.xml
+index 6874f30..138b503 100644
+--- a/packages/SettingsProvider/res/values/defaults.xml
++++ b/packages/SettingsProvider/res/values/defaults.xml
+@@ -164,7 +164,8 @@
+     <bool name="def_sound_effects_enabled">true</bool>
+ 
+     <!-- Development settings -->
+-    <bool name="def_stay_on_while_plugged_in">false</bool>
++	<!-- set default stayawake while plugged in true -->
++    <bool name="def_stay_on_while_plugged_in">true</bool>
+ 
+     <!-- Number of retries for connecting to DHCP.
+          Value here is the same as WifiStateMachine.DEFAULT_MAX_DHCP_RETRIES -->
+-- 
+1.9.1
+

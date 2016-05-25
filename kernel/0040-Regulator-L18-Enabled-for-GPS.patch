@@ -1,0 +1,29 @@
+From b0d647d764caa79387c40bd19ff07c19e499a4e5 Mon Sep 17 00:00:00 2001
+From: Parth Pancholi <parth.pancholi@einfochips.com>
+Date: Thu, 28 Apr 2016 11:22:48 +0530
+Subject: [PATCH 40/40] Regulator L18 Enabled for GPS
+
+New HW Revision of DB600C using L18 for GPS Chip Supply.
+
+Change-Id: Ib0bb831846c88724885d774dea5c9120b48124b6
+Signed-off-by: eInfochips Team <ei-qc8064@einfochips.com>
+---
+ arch/arm/mach-msm/board-8064-regulator.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/arch/arm/mach-msm/board-8064-regulator.c b/arch/arm/mach-msm/board-8064-regulator.c
+index 51e1626..3471266 100644
+--- a/arch/arm/mach-msm/board-8064-regulator.c
++++ b/arch/arm/mach-msm/board-8064-regulator.c
+@@ -694,7 +694,7 @@ apq8064_rpm_regulator_init_data[] __devinitdata = {
+ 	RPM_LDO(L15, 1, 1, 0, 1800000, 1800000, NULL,          0, 10000),
+ 	RPM_LDO(L16, 0, 1, 0, 2800000, 2800000, NULL,          0,     0),
+ 	RPM_LDO(L17, 0, 1, 0, 2000000, 2000000, NULL,          0,     0),
+-	RPM_LDO(L18, 0, 1, 0, 1300000, 1800000, "8921_s4",     0,     0),
++	RPM_LDO(L18, 1, 1, 0, 1300000, 1300000, NULL,          0,     0),
+ 	RPM_LDO(L21, 0, 1, 0, 1050000, 1050000, NULL,          0,     0),
+ 	RPM_LDO(L22, 0, 1, 0, 2600000, 2600000, NULL,          0,     0),
+ 	RPM_LDO(L23, 0, 1, 0, 1800000, 1800000, NULL,          0,     0),
+-- 
+1.9.1
+

@@ -1,0 +1,57 @@
+From e6a53ae323b725d759b7ce6122fa8452c9be0bee Mon Sep 17 00:00:00 2001
+From: Girish Sharma <girish.sharma@einfochips.com>
+Date: Tue, 12 Apr 2016 19:28:12 +0530
+Subject: [PATCH 2/2] Fix: Bogus size error while writing fixed
+
+During writing a larger file in partition lk fails to write and
+encounter a Bogus size error.
+This patch will resolve this issue.
+
+Signed-off-by: Girish Sharma <girish.sharma@einfochips.com>
+---
+ app/aboot/aboot.c | 18 ++++++++++++++++++
+ 1 file changed, 18 insertions(+)
+
+diff --git a/app/aboot/aboot.c b/app/aboot/aboot.c
+index f98fe3f..d5b647b 100644
+--- a/app/aboot/aboot.c
++++ b/app/aboot/aboot.c
+@@ -1581,6 +1581,7 @@ void cmd_flash_mmc_sparse_img(const char *arg, void *data, unsigned sz)
+ 
+ 		chunk_data_sz = sparse_header->blk_sz * chunk_header->chunk_sz;
+ 
++#if 0
+ 		/* Make sure multiplication does not overflow uint32 size */
+ 		if (sparse_header->blk_sz && (chunk_header->chunk_sz != chunk_data_sz / sparse_header->blk_sz))
+ 		{
+@@ -1596,10 +1597,27 @@ void cmd_flash_mmc_sparse_img(const char *arg, void *data, unsigned sz)
+ 			fastboot_fail("Chunk data size exceeds partition size");
+ 			return;
+ 		}
++#endif
+ 
+ 		switch (chunk_header->chunk_type)
+ 		{
+ 			case CHUNK_TYPE_RAW:
++			/* Make sure multiplication does not overflow uint32 size */
++			if (sparse_header->blk_sz && (chunk_header->chunk_sz != chunk_data_sz / sparse_header->blk_sz))
++			{
++			  fastboot_fail("Bogus size sparse and chunk header");
++			  return;
++			}
++
++			/* Make sure that the chunk size calculated from sparse image does not
++			 * exceed partition size
++			 */
++			if ((uint64_t)total_blocks * (uint64_t)sparse_header->blk_sz + chunk_data_sz > size)
++			{
++			  fastboot_fail("Chunk data size exceeds partition size");
++			  return;
++			}
++
+ 			if(chunk_header->total_sz != (sparse_header->chunk_hdr_sz +
+ 											chunk_data_sz))
+ 			{
+-- 
+1.9.1
+

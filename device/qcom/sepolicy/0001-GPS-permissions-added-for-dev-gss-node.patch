@@ -1,0 +1,59 @@
+From e4b26bd8bf00dca837be1291efa01e33d17c487f Mon Sep 17 00:00:00 2001
+From: Girish Sharma <girish.sharma@einfochips.com>
+Date: Fri, 27 Nov 2015 15:52:32 +0530
+Subject: [PATCH] GPS: permissions added for /dev/gss node
+
+To acces GPS device via Application layer AOSP require permissions. This
+patch add required permission to acces GPS hardware to Android
+Application layer.
+
+Change-Id: I8a925f3ec519deb543d14d1723be8b8ae15d0abf
+Signed-off-by: eInfochips Team <ei-qc8064@einfochips.com>
+---
+ common/device.te        | 2 ++
+ common/file_contexts    | 1 +
+ common/system_server.te | 6 ++++++
+ 3 files changed, 9 insertions(+)
+
+diff --git a/common/device.te b/common/device.te
+index 54570e1..6789e23 100755
+--- a/common/device.te
++++ b/common/device.te
+@@ -75,6 +75,8 @@ type ipa_dev, dev_type;
+ 
+ type wcnss_device, dev_type;
+ 
++type gss_device, dev_type;
++
+ type mmc_block_device, dev_type;
+ 
+ # Define QDSS devices
+diff --git a/common/file_contexts b/common/file_contexts
+index 5da3d54..a72511c 100644
+--- a/common/file_contexts
++++ b/common/file_contexts
+@@ -54,6 +54,7 @@
+ /dev/dpl_ctrl                                   u:object_r:rmnet_device:s0
+ /dev/wcnss_ctrl                                 u:object_r:wcnss_device:s0
+ /dev/wcnss_wlan                                 u:object_r:wcnss_device:s0
++/dev/gss                                        u:object_r:gss_device:s0
+ /dev/hbtp_input                                 u:object_r:hbtp_device:s0
+ /dev/jdi-bu21150                                u:object_r:bu21150_device:s0
+ /dev/voice_svc                                  u:object_r:voice_device:s0
+diff --git a/common/system_server.te b/common/system_server.te
+index 1e130d9..b32af49 100644
+--- a/common/system_server.te
++++ b/common/system_server.te
+@@ -79,3 +79,9 @@ allow system_server tee_device:chr_file rw_file_perms;
+ 
+ #diag read/write
+ diag_rw(system_server);
++
++#For FRP
++#allow system_server persistent_data_block_device:blk_file rw_file_perms;
++
++#For GSS
++allow system_server gss_device:chr_file rw_file_perms;
+-- 
+1.9.1
+

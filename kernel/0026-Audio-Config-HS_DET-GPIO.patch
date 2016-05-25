@@ -1,0 +1,32 @@
+From a3e86f747647ab639eed2923b6c7bc50574311a5 Mon Sep 17 00:00:00 2001
+From: Girish Sharma <girish.sharma@einfochips.com>
+Date: Mon, 18 Jan 2016 20:51:29 +0530
+Subject: [PATCH 26/40] Audio: Config HS_DET GPIO
+
+Changed Headset detect GPIO as per schematic
+
+Change-Id: Ifd6961090b7a0fb319fbf8eefd4e4e1dbf507e09
+Signed-off-by: eInfochips Team <ei-qc8064@einfochips.com>
+---
+ sound/soc/msm/apq8064.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/sound/soc/msm/apq8064.c b/sound/soc/msm/apq8064.c
+index 2097b85..0f24507 100644
+--- a/sound/soc/msm/apq8064.c
++++ b/sound/soc/msm/apq8064.c
+@@ -65,7 +65,11 @@
+ #define TABLA_MBHC_DEF_BUTTONS 8
+ #define TABLA_MBHC_DEF_RLOADS 5
+ 
++#ifndef CONFIG_MACH_APQ8064_DB600C
+ #define JACK_DETECT_GPIO 38
++#else
++#define JACK_DETECT_GPIO 158 /* DB600C using PMIC_GPIO_7 for HS_DET */
++#endif
+ 
+ /* Shared channel numbers for Slimbus ports that connect APQ to MDM. */
+ enum {
+-- 
+1.9.1
+

@@ -1,0 +1,230 @@
+From 1d0e426c2bbda9d54c9dbadf447d46f9ea739590 Mon Sep 17 00:00:00 2001
+From: Parth Pancholi <parth.pancholi@einfochips.com>
+Date: Tue, 12 Apr 2016 12:37:11 +0530
+Subject: [PATCH 30/40] SPI: Added support for SPI EEPROM
+
+These changes will add default SPI EEPROM support which is available on
+DB600C Mezzanine card.
+
+Signed-off-by: eInfochips Team <ei-qc8064@einfochips.com>
+---
+ arch/arm/configs/msm8960_defconfig     |  2 +-
+ arch/arm/mach-msm/board-8064-gpiomux.c | 51 ++++++++++++++++++++++++++++++++--
+ arch/arm/mach-msm/board-8064.c         | 35 ++++++++++++++++++-----
+ 3 files changed, 78 insertions(+), 10 deletions(-)
+
+diff --git a/arch/arm/configs/msm8960_defconfig b/arch/arm/configs/msm8960_defconfig
+index 60e62dd..72d72c3 100644
+--- a/arch/arm/configs/msm8960_defconfig
++++ b/arch/arm/configs/msm8960_defconfig
+@@ -353,7 +353,7 @@ CONFIG_I2C_CHARDEV=y
+ CONFIG_I2C_QUP=y
+ CONFIG_SPI=y
+ CONFIG_SPI_QUP=y
+-CONFIG_SPI_SPIDEV=y
++CONFIG_SPI_SPIDEV=m
+ CONFIG_SLIMBUS_MSM_CTRL=y
+ CONFIG_DEBUG_GPIO=y
+ CONFIG_GPIO_SYSFS=y
+diff --git a/arch/arm/mach-msm/board-8064-gpiomux.c b/arch/arm/mach-msm/board-8064-gpiomux.c
+index e6c1cac..9699f7d 100644
+--- a/arch/arm/mach-msm/board-8064-gpiomux.c
++++ b/arch/arm/mach-msm/board-8064-gpiomux.c
+@@ -33,11 +33,13 @@ static struct gpiomux_setting gpio_eth_config = {
+ };
+ 
+ /* The SPI configurations apply to GSBI 5*/
++#ifndef CONFIG_MACH_APQ8064_DB600C
+ static struct gpiomux_setting gpio_spi_config = {
+ 	.func = GPIOMUX_FUNC_2,
+ 	.drv = GPIOMUX_DRV_12MA,
+ 	.pull = GPIOMUX_PULL_NONE,
+ };
++#endif
+ 
+ /* The SPI configurations apply to GSBI 5 chip select 2*/
+ static struct gpiomux_setting gpio_spi_cs2_config = {
+@@ -58,11 +60,13 @@ struct msm_gpiomux_config apq8064_ethernet_configs[] = {
+ };
+ #endif
+ /* Chip selects for SPI clients */
++#ifndef CONFIG_MACH_APQ8064_DB600C
+ static struct gpiomux_setting gpio_spi_cs_config = {
+ 	.func = GPIOMUX_FUNC_GPIO,
+ 	.drv = GPIOMUX_DRV_12MA,
+ 	.pull = GPIOMUX_PULL_UP,
+ };
++#endif
+ 
+ /* Chip selects for EPM SPI clients */
+ static struct gpiomux_setting gpio_epm_spi_cs_config = {
+@@ -633,6 +637,41 @@ static struct msm_gpiomux_config apq8064_hdmi_configs[] __initdata = {
+ 	},
+ };
+ 
++#ifdef CONFIG_MACH_APQ8064_DB600C
++
++static struct gpiomux_setting gpio_spi0_config = {
++	.func = GPIOMUX_FUNC_2,
++	.drv = GPIOMUX_DRV_12MA,
++	.pull = GPIOMUX_PULL_NONE,
++};
++static struct msm_gpiomux_config db600c_spi5_configs[] __initdata = {
++	{
++		.gpio      = 51,        /* GSBI5 QUP SPI_DATA_MOSI */
++		.settings = {
++			[GPIOMUX_SUSPENDED] = &gpio_spi0_config,
++		},
++	},
++	{
++		.gpio      = 52,        /* GSBI5 QUP SPI_DATA_MISO */
++		.settings = {
++			[GPIOMUX_SUSPENDED] = &gpio_spi0_config,
++		},
++	},
++	{
++		.gpio      = 53,        /* GSBI5 CS0 */
++		.settings = {
++			[GPIOMUX_SUSPENDED] = &gpio_spi0_config,
++		},
++	},
++	{
++		.gpio      = 54,        /* GSBI5 QUP SPI_CLK */
++		.settings = {
++			[GPIOMUX_SUSPENDED] = &gpio_spi0_config,
++		},
++	},
++};
++#endif
++
+ static struct msm_gpiomux_config apq8064_gsbi_configs[] __initdata = {
+ 	{
+ 		.gpio      = 8,			/* GSBI3 I2C QUP SDA */
+@@ -678,6 +717,8 @@ static struct msm_gpiomux_config apq8064_gsbi_configs[] __initdata = {
+ 		},
+ 	},
+ #endif
++
++#ifndef CONFIG_MACH_APQ8064_DB600C
+ #if defined(CONFIG_KS8851) || defined(CONFIG_KS8851_MODULE)
+ 	{
+ 		.gpio      = 51,		/* GSBI5 QUP SPI_DATA_MOSI */
+@@ -692,17 +733,20 @@ static struct msm_gpiomux_config apq8064_gsbi_configs[] __initdata = {
+ 		},
+ 	},
+ 	{
+-		.gpio      = 53,		/* Funny CS0 */
++		.gpio      = 53,		/* GSBI5 CS0 */
+ 		.settings = {
+ 			[GPIOMUX_SUSPENDED] = &gpio_spi_config,
+ 		},
+ 	},
++#endif
++#endif
+ 	{
+ 		.gpio      = 31,		/* GSBI5 QUP SPI_CS2_N */
+ 		.settings = {
+ 			[GPIOMUX_SUSPENDED] = &gpio_spi_cs2_config,
+ 		},
+ 	},
++#ifndef CONFIG_MACH_APQ8064_DB600C
+ 	{
+ 		.gpio      = 54,		/* GSBI5 QUP SPI_CLK */
+ 		.settings = {
+@@ -724,12 +768,14 @@ static struct msm_gpiomux_config apq8064_gsbi_configs[] __initdata = {
+ 			[GPIOMUX_SUSPENDED] = &gpio_epm_spi_cs_config,
+ 		},
+ 	},
++#ifndef CONFIG_MACH_APQ8064_DB600C
+ 	{
+ 		.gpio      = 53,		/* NOR CS */
+ 		.settings = {
+ 			[GPIOMUX_SUSPENDED] = &gpio_spi_cs_config,
+ 		},
+ 	},
++#endif
+ 	{
+ 		.gpio      = 82,	/* GSBI7 UART2 TX */
+ 		.settings = {
+@@ -1763,6 +1809,7 @@ void __init apq8064_init_gpiomux(void)
+ 				ARRAY_SIZE(apq8064_i2c2_configs));
+ 	msm_gpiomux_install(apq8064_i2c7_configs,
+ 				ARRAY_SIZE(apq8064_i2c7_configs));
++	msm_gpiomux_install(db600c_spi5_configs,
++				ARRAY_SIZE(db600c_spi5_configs));
+ #endif
+-
+ }
+diff --git a/arch/arm/mach-msm/board-8064.c b/arch/arm/mach-msm/board-8064.c
+index 0af1a7a..acfe091 100644
+--- a/arch/arm/mach-msm/board-8064.c
++++ b/arch/arm/mach-msm/board-8064.c
+@@ -43,6 +43,7 @@
+ #include <asm/hardware/gic.h>
+ #include <asm/mach/mmc.h>
+ #include <linux/platform_data/qcom_wcnss_device.h>
++#include <linux/spi/eeprom.h>
+ 
+ #include <mach/board.h>
+ #include <mach/msm_iomap.h>
+@@ -2820,9 +2821,21 @@ static struct msm_spi_platform_data apq8064_qup_spi_gsbi5_pdata = {
+ };
+ 
+ #define KS8851_IRQ_GPIO		43
++#ifdef CONFIG_MACH_APQ8064_DB600C
++/* Uncomment this to enable AT25 SPI EEPROM
++ * Comment this to enable SPI device node /dev/spidev0.0
++ * Default location ro read/write SPI EEPROM /sys/bus/spi/devices/spi0.0/eeprom
++ */
++static struct spi_eeprom at25640a = {
++    .byte_len   = SZ_64K / 8,
++    .name       = "at25640a",
++    .page_size  = 32,
++    .flags      = EE_ADDR2,
++};
++#endif
+ 
+ static struct spi_board_info spi_board_info[] __initdata = {
+-#ifdef CONFIG_MACH_APQ8064_DB600C
++#ifndef CONFIG_MACH_APQ8064_DB600C
+ 	{
+ 		.modalias = "spidev",
+ 		.irq = -1,
+@@ -2831,7 +2844,6 @@ static struct spi_board_info spi_board_info[] __initdata = {
+ 		.chip_select = 0,
+ 		.mode = SPI_MODE_0,
+ 	},
+-#else
+ 	{
+ 		.modalias               = "ks8851",
+ 		.irq                    = MSM_GPIO_TO_INT(KS8851_IRQ_GPIO),
+@@ -2841,12 +2853,21 @@ static struct spi_board_info spi_board_info[] __initdata = {
+ 		.mode                   = SPI_MODE_0,
+ 	},
+ 	{
+-		.modalias		= "epm_adc",
+-		.max_speed_hz		= 1100000,
+-		.bus_num		= 0,
+-		.chip_select		= 3,
+-		.mode			= SPI_MODE_0,
++		.modalias               = "epm_adc",
++		.max_speed_hz           = 1100000,
++		.bus_num                = 0,
++		.chip_select            = 3,
++		.mode                   = SPI_MODE_0,
+ 	},
++#else
++    {
++		.modalias   = "at25",
++		.platform_data  = &at25640a,
++		.max_speed_hz   = 10 * 1000 * 1000, /* at 3v3 */
++		.bus_num    = 0,
++		.chip_select    = 0,
++		.mode       = SPI_MODE_0,
++    },
+ #endif
+ };
+ 
+-- 
+1.9.1
+

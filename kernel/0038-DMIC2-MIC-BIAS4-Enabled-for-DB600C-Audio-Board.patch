@@ -1,0 +1,39 @@
+From 36740ab98dcedaa923d3802f7b502a6670ce9b62 Mon Sep 17 00:00:00 2001
+From: Parth Pancholi <parth.pancholi@einfochips.com>
+Date: Tue, 8 Mar 2016 16:24:33 +0530
+Subject: [PATCH 38/40] DMIC2 MIC BIAS4 Enabled for DB600C Audio Board
+
+In DB600C MIC BIAS4 is used for DMIC2 on Audio Expansion Board.
+
+Signed-off-by: eInfochips Team <ei-qc8064@einfochips.com>
+---
+ sound/soc/msm/apq8064.c | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/sound/soc/msm/apq8064.c b/sound/soc/msm/apq8064.c
+index 0f24507..0e53ab6 100644
+--- a/sound/soc/msm/apq8064.c
++++ b/sound/soc/msm/apq8064.c
+@@ -645,10 +645,19 @@ static const struct snd_soc_dapm_route apq8064_liquid_cdp_audio_map[] = {
+ 	 * Not there on MTP.
+ 	 * Conncted to DMIC3 Input on Tabla codec.
+ 	 */
++#ifndef CONFIG_MACH_APQ8064_DB600C
+ 	{"DMIC3", NULL, "MIC BIAS3 External"},
+ 	{"MIC BIAS3 External", NULL, "Digital Mic2"},
+ 
+ 	/**
++	 * In DB600C Mic BIAS4 is used.
++	 */
++#else
++	{"DMIC3", NULL, "MIC BIAS4 External"},
++	{"MIC BIAS4 External", NULL, "Digital Mic2"},
++#endif
++
++	/**
+ 	 * Digital Mic3. Front bottom left of middle on Liquid.
+ 	 * Digital Mic5 (Top front Mic) on MTP.
+ 	 * Digital Mic GM5 on CDP mainboard.
+-- 
+1.9.1
+
